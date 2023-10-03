@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  reporting: ministryofjustice/hmpps-reporting@dev:37ba9de36b2e607584eeb7e4bda36ca1ff42df89
+  reporting: ministryofjustice/hmpps-reporting@dev:dce34e110f921a576c9a862f839274885827b760
 
 parameters:
   project:
@@ -23,3 +23,8 @@ workflows:
           project: << pipeline.parameters.project >>
           context:
             - hmpps-reporting-common
+          filters:
+            branches:
+              only: main
+            tags:
+              ignore: /.*/
