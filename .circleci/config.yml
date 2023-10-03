@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  reporting: ministryofjustice/hmpps-reporting@dev:476224477e00ae6abbaadf7a716d5e47bc57ae0c
+  reporting: ministryofjustice/hmpps-reporting@dev:50d699c4d27b3128cca443b6d605c4ee9a16b6c6
 
 parameters:
   project:
@@ -19,8 +19,8 @@ workflows:
           sync_args: "--exclude '*' --include '*-all*jar'"
           release_ready: true
           notify_slack: false
-          release_tag: << pipeline.parameters.release_tag >>
-          project: << pipeline.parameters.project >>
+          release_tag: v0.0.26
+          project: digital-prison-reporting-java-template
           context:
             - hmpps-reporting-common
           filters:
