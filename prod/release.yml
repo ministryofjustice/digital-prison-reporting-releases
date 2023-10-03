@@ -1,1 +1,3 @@
-TBC
+releases:
+  digital-prison-reporting-java-template:
+    tag: 0.0.25
