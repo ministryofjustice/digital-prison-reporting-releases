@@ -25,6 +25,6 @@ workflows:
             - hmpps-reporting-common
           filters:
             branches:
-              only: main
+              only: /.*/
             tags:
               ignore: /.*/
