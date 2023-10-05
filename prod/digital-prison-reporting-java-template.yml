@@ -1,5 +1,5 @@
 release:
   relase_type: gradle
-  relase_catogory: backend
+  relase_category: backend
   tag: 0.0.26
   rollback: false
