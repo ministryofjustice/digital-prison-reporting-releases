@@ -1,5 +1,6 @@
 release:
-  relase_type: gradle
-  relase_category: backend
+  project: digital-prison-reporting-java-template
+  release_type: gradle
+  release_category: backend
   tag: 0.0.26
   rollback: false
