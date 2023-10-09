@@ -1,29 +1,20 @@
+setup: true
 version: 2.1
-
 orbs:
-  reporting: ministryofjustice/hmpps-reporting@dev:32276ecef28ece1d986a557a748cfb975a661dbb
-
-parameters:
-  project:
-    type: string
-    default: ""
-  release_tag: 
-    type: string
-    default: ""
-
+  continuation: circleci/continuation@0.2.0
 workflows:
-  release:
-    jobs:            
-      - reporting/generic_release:
-          app: digital-prison-reporting-jobs
-          sync_args: "--exclude '*' --include '*-all*jar'"
-          release_ready: true
-          dry_run: true
-          notify_slack: false
-          context:
-            - hmpps-reporting-common
-          filters:
-            branches:
-              only: /.*/
-            tags:
-              ignore: /.*/
+  setup:
+    jobs:
+      - continuation/continue:
+          configuration_path: ".circleci/main.yml"
+          parameters: /home/circleci/params.json
+          pre-steps:
+            - run:
+                command: |
+                  if [ -z "${CIRCLE_PULL_REQUEST##*/}" ]
+                  then
+                    IS_PR=false
+                  else
+                    IS_PR=true
+                  fi
+                  echo '{ "is_pr": '$IS_PR' }' >> /home/circleci/params.json
