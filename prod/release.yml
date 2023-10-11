@@ -1,5 +1,0 @@
-release:
-  project: digital-prison-reporting-java-template
-  tag: 0.0.25
-  release_type: gradle
-  release_category: backend
