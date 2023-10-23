@@ -1,0 +1,8 @@
+release:
+  project: digital-prison-reporting-domain-builder
+  release_type: gradle
+  release_category: backend
+  tag: v1.0.0
+  extra_args:
+    refresh_lambda: true
+    refresh_function: dpr-domain-builder-backend-api-function
