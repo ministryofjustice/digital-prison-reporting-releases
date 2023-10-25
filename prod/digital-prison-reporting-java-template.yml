@@ -4,3 +4,4 @@ release:
   release_category: backend
   tag: v0.0.20
   rollback: false
+  bump: 1
