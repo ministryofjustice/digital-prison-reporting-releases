@@ -1,0 +1,5 @@
+release:
+  project: digital-prison-reporting-jobs
+  release_type: gradle
+  release_category: backend
+  tag: v1.0.0
