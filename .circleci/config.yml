@@ -39,7 +39,7 @@ workflows:
                   else
                     JAVA_TAG="default"  
                   fi
-                  echo '"tag": '$JAVA_TAG' }' >> /home/circleci/params.json
+                  echo '"tag": "$JAVA_TAG" }' >> /home/circleci/params.json
                   cat /home/circleci/params.json
           requires: [build]        
            
