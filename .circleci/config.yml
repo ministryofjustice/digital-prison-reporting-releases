@@ -16,7 +16,7 @@ workflows:
           parameters: /home/circleci/params.json
           pre-steps:
             - attach_workspace:
-                at: code    
+                at: .    
             - run:
                 command: |
                   # Evaluate if Pull Request
@@ -43,12 +43,10 @@ workflows:
            
 jobs:
   build:
-    working_directory: code
+    working_directory: .
     docker:
       - image: cimg/base:2023.03
     steps:
       - checkout
       - persist_to_workspace:
-          root: code
-          paths:
-            - .
+          root: .
