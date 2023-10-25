@@ -6,11 +6,14 @@ orbs:
 
 workflows:
   setup:
-    jobs:  
-      - continuation/continue:
-          configuration_path: ".circleci/main.yml"
-          parameters: /home/circleci/params.json
-          pre-steps:
+    jobs:
+      - path-filtering/filter:
+          name: Create dynamic jobs         
+          mapping: |
+            prod/digital-prison-reporting-jobs.yml tag "8.0"
+          config-path: ".circleci/main.yml"
+          output-path: /home/circleci/params.json
+          post-steps:
             - run:
                 command: |
                   if [ -z "${CIRCLE_PULL_REQUEST##*/}" ]
@@ -19,5 +22,4 @@ workflows:
                   else
                     IS_PR=true
                   fi
-                  echo '{ "is_pr": '$IS_PR' }' >> /home/circleci/params.json
-                  
+                  echo '{ "is_pr": '$IS_PR' }' >> /home/circleci/params.json           
