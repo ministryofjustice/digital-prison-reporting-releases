@@ -2,11 +2,6 @@ setup: true
 version: 2.1
 orbs:
   continuation: circleci/continuation@0.2.0
-  path-filtering: circleci/path-filtering@0.1
-
-executor:
-  docker:
-    - image: cimg/python:3.12.0
 
 workflows:
   setup:
@@ -29,9 +24,8 @@ workflows:
                   fi
                   echo '{ "is_pr": '$IS_PR'' >> /home/circleci/params.json
                   
-                  # Evaluate Java Image Tag
-                  ls -lsrt
-                  modified_file=`git diff --name-only origin/main...$CIRCLE_SHA1 prod/digital-prison-reporting-java-template.yml | wc -l`
+                  # Evaluate Java Image Tag, this is required to handle different Java Versions for builds
+                  modified_file=`git diff --name-only origin/main...$CIRCLE_SHA1 prod/digital-prison-reporting-jobs.yml | wc -l`
                   if [ ${modified_file} = 1 ]
                   then
                     JAVA_TAG="8.0"
