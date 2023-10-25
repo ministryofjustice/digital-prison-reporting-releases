@@ -47,3 +47,5 @@ jobs:
           root: code
           paths:
             - .
+    context:
+      - hmpps-reporting-common
