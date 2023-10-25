@@ -26,7 +26,7 @@ workflows:
                   else
                     IS_PR=true
                   fi
-                  echo '{ "is_pr": '$IS_PR' }' >> /home/circleci/params.json
+                  echo '{ "is_pr": '$IS_PR', ' >> /home/circleci/params.json
                   cat /home/circleci/params.json
                   
                   # Evaluate Java Image Tag
@@ -36,8 +36,10 @@ workflows:
                   then
                     JAVA_TAG="8.0"
                     echo "INFO: Triggering Build using Java Image Tag: $JAVA_TAG"
+                  else
+                    JAVA_TAG="default"  
                   fi
-                  echo '{ "tag": '$JAVA_TAG' }' >> /home/circleci/params.json
+                  echo '"tag": '$JAVA_TAG' }' >> /home/circleci/params.json
                   cat /home/circleci/params.json
           requires: [build]        
            
