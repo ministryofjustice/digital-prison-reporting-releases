@@ -7,19 +7,27 @@ orbs:
 workflows:
   setup:
     jobs:
+      - generate-params
       - path-filtering/filter:
           name: Create dynamic jobs         
           mapping: |
             prod/digital-prison-reporting-jobs.yml tag "8.0"
           config-path: ".circleci/main.yml"
           output-path: /home/circleci/params.json
-          post-steps:
-            - run:
-                command: |
-                  if [ -z "${CIRCLE_PULL_REQUEST##*/}" ]
-                  then
-                    IS_PR=false
-                  else
-                    IS_PR=true
-                  fi
-                  echo '{ "is_pr": '$IS_PR' }' >> /home/circleci/params.json           
+          requires: [generate-params]
+
+jobs: 
+  generate-params:
+    docker:
+      - image: cimg/base:2023.03
+    steps:
+      - run:
+          name: generate
+          command: |
+            if [ -z "${CIRCLE_PULL_REQUEST##*/}" ]
+            then
+              IS_PR=false
+            else
+              IS_PR=true
+            fi
+            echo '{ "is_pr": '$IS_PR' }' >> /home/circleci/params.json
