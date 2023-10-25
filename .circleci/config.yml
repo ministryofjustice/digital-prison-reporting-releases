@@ -4,13 +4,14 @@ orbs:
   continuation: circleci/continuation@0.2.0
   path-filtering: circleci/path-filtering@0.1
 
+executor:
+  docker:
+    - image: cimg/python:3.12.0
+
 workflows:
   setup:
     jobs: 
-      - build:
-          context:
-            - hmpps-reporting-common
-            - hmpps-reporting-orb   
+      - clone
       - continuation/continue:
           configuration_path: ".circleci/main.yml"
           parameters: /home/circleci/params.json
@@ -37,14 +38,14 @@ workflows:
                     JAVA_TAG="8.0"
                     echo "INFO: Triggering Build using Java Image Tag: $JAVA_TAG"
                   else
-                    JAVA_TAG="default"  
+                    echo "INFO: JAVA_TAG is set to 'default'"
                   fi
                   echo '"tag": "'"$JAVA_TAG"'" }' >> /home/circleci/params.json
                   cat /home/circleci/params.json
-          requires: [build]        
+          requires: [clone]        
            
 jobs:
-  build:
+  clone:
     docker:
       - image: cimg/python:3.12.0
     steps:
