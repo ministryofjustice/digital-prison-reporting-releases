@@ -3,4 +3,4 @@ release:
   release_type: gradle
   release_category: backend
   tag: v1.0.0
-  bump: 1
+  bump: 2
