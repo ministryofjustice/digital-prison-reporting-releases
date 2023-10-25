@@ -7,8 +7,9 @@ orbs:
 workflows:
   setup:
     jobs: 
-      - checkout
+      - build
       - continuation/continue:
+          working_directory: code
           configuration_path: ".circleci/main.yml"
           parameters: /home/circleci/params.json
           pre-steps:
@@ -34,3 +35,14 @@ workflows:
                   fi
                   echo '{ "tag": '$JAVA_TAG' }' >> /home/circleci/params.json
                   cat /home/circleci/params.json
+           
+jobs:
+  build:
+    docker:
+      - image: cimg/base:2023.03
+    steps:
+      - checkout
+      - persist_to_workspace:
+          root: code
+          paths:
+            - .
