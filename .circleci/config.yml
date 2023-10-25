@@ -28,7 +28,6 @@ workflows:
                     IS_PR=true
                   fi
                   echo '{ "is_pr": '$IS_PR', ' >> /home/circleci/params.json
-                  cat /home/circleci/params.json
                   
                   # Evaluate Java Image Tag
                   ls -lsrt
@@ -42,6 +41,7 @@ workflows:
                   else
                     echo "INFO: JAVA_TAG is set to 'default'"
                   fi
+                  cat /home/circleci/params.json
           requires: [clone]        
            
 jobs:
