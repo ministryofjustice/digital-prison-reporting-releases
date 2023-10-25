@@ -9,7 +9,8 @@ workflows:
     jobs: 
       - build:
           context:
-            - hmpps-reporting-orb      
+            - hmpps-reporting-common
+            - hmpps-reporting-orb   
       - continuation/continue:
           configuration_path: ".circleci/main.yml"
           parameters: /home/circleci/params.json
