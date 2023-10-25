@@ -15,7 +15,7 @@ parameters:
     default: false
   tag:
     type: string
-    default: "11.0"    
+    default: "8.0"    
 
 workflows:
   release:

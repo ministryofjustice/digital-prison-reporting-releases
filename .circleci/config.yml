@@ -6,17 +6,7 @@ orbs:
 
 workflows:
   setup:
-    jobs:
-      - path-filtering/filter:
-          name: Create dynamic jobs      
-          mapping: |
-            prod/digital-prison-reporting-jobs.yml tag "8.0"
-          config-path: ".circleci/main.yml"
-          output-path: /home/circleci/params.json
-          filters:
-            branches:
-              only:
-                - main          
+    jobs:  
       - continuation/continue:
           configuration_path: ".circleci/main.yml"
           parameters: /home/circleci/params.json
