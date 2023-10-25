@@ -2,9 +2,21 @@ setup: true
 version: 2.1
 orbs:
   continuation: circleci/continuation@0.2.0
+  path-filtering: circleci/path-filtering@0.1
+
 workflows:
   setup:
     jobs:
+      - path-filtering/filter:
+          name: Create dynamic jobs      
+          mapping: |
+            prod/digital-prison-reporting-jobs.yml tag "8.0"
+          config-path: ".circleci/main.yml"
+          output-path: /home/circleci/params.json
+          filters:
+            branches:
+              only:
+                - main          
       - continuation/continue:
           configuration_path: ".circleci/main.yml"
           parameters: /home/circleci/params.json
@@ -18,3 +30,4 @@ workflows:
                     IS_PR=true
                   fi
                   echo '{ "is_pr": '$IS_PR' }' >> /home/circleci/params.json
+                  
