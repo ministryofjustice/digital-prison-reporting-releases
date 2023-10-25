@@ -45,7 +45,7 @@ jobs:
   build:
     working_directory: .
     docker:
-      - image: cimg/base:2023.03
+      - image: circleci/python:3.6.4
     steps:
       - checkout
       - persist_to_workspace:
