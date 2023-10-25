@@ -9,11 +9,13 @@ workflows:
     jobs: 
       - build:
           context:
-            - hmpps-reporting-common      
+            - hmpps-reporting-orb      
       - continuation/continue:
           configuration_path: ".circleci/main.yml"
           parameters: /home/circleci/params.json
           pre-steps:
+            - attach_workspace:
+                at: code    
             - run:
                 command: |
                   # Evaluate if Pull Request
