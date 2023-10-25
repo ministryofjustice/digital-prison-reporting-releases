@@ -24,10 +24,11 @@ workflows:
                   cat /home/circleci/params.json
                   
                   # Evaluate Java Image Tag
-                  if [ $(git diff --name-only origin/main...$CIRCLE_SHA1 prod/digital-prison-reporting-java-template.yml | wc -l) = 1 ]
+                  modified_file=`git diff --name-only origin/main...$CIRCLE_SHA1 prod/digital-prison-reporting-java-template.yml | wc -l`
+                  if [ ${modified_file} = 1 ]
                   then
                     JAVA_TAG="8.0"
                     echo "INFO: Triggering Build using Java Image Tag: $JAVA_TAG"
                   fi
-                  echo '{ "tag": "$JAVA_TAG" }' >> /home/circleci/params.json
+                  echo '{ "tag": '$JAVA_TAG' }' >> /home/circleci/params.json
                   cat /home/circleci/params.json
