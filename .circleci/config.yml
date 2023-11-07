@@ -2,22 +2,50 @@ setup: true
 version: 2.1
 orbs:
   continuation: circleci/continuation@0.2.0
-  path-filtering: circleci/path-filtering@0.1
 
 workflows:
   setup:
-    jobs:  
+    jobs: 
+      - clone
       - continuation/continue:
           configuration_path: ".circleci/main.yml"
           parameters: /home/circleci/params.json
           pre-steps:
+            - attach_workspace:
+                at: .    
             - run:
                 command: |
+                  # Evaluate if Pull Request
                   if [ -z "${CIRCLE_PULL_REQUEST##*/}" ]
                   then
                     IS_PR=false
                   else
                     IS_PR=true
                   fi
-                  echo '{ "is_pr": '$IS_PR' }' >> /home/circleci/params.json
+                  echo '{ "is_pr": '$IS_PR'' >> /home/circleci/params.json
                   
+                  # Evaluate Java Image Tag, this is required to handle different Java Versions for builds
+                  modified_file=`git diff --name-only origin/main...$CIRCLE_SHA1 prod/digital-prison-reporting-jobs.yml | wc -l`
+                  if [ ${modified_file} = 1 ]
+                  then
+                    JAVA_TAG="8.0"
+                    # Pass TAG into Params File
+                    echo ', "tag": "'"$JAVA_TAG"'" }' >> /home/circleci/params.json
+                    echo "INFO: Triggering Build using Java Image Tag: $JAVA_TAG"
+                  else
+                    echo "INFO: JAVA_TAG is set to 'default'"
+                    echo '}' >> /home/circleci/params.json
+                  fi
+                  cat /home/circleci/params.json 
+          requires: [clone]        
+           
+jobs:
+  clone:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - checkout
+      - persist_to_workspace:
+          root: .
+          paths:
+            - .
