@@ -36,7 +36,7 @@ workflows:
                     echo "INFO: JAVA_TAG is set to 'default'"
                     echo '}' >> /home/circleci/params.json
                   fi
-                  cat /home/circleci/params.json
+                  cat /home/circleci/params.json 
           requires: [clone]        
            
 jobs:
