@@ -2,6 +2,5 @@ release:
   project: digital-prison-reporting-java-template
   release_type: gradle
   release_category: backend
-  tag: v0.0.20
-  rollback: false
+  tag: v0.0.19
   bump: 1

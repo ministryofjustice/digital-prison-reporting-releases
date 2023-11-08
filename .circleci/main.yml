@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  reporting: ministryofjustice/hmpps-reporting@1.0.33
+  reporting: ministryofjustice/hmpps-reporting@dev:0a8587270bfb07792227f9e64715852f0ee3eb0b
 
 parameters:
   project:
@@ -28,6 +28,7 @@ workflows:
           notify_slack: false
           tag: << pipeline.parameters.tag >>
           is_pr: << pipeline.parameters.is_pr >>
+          is_rollback: false
           context:
             - hmpps-reporting-common
           filters:
