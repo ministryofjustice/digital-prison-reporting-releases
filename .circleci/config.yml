@@ -29,6 +29,7 @@ workflows:
                   is_preprod_release=`git diff --name-only origin/main...$CIRCLE_SHA1 preprod/*.yml | wc -l`
                     if [ ${is_prod_release} = 1 ];
                       then
+                        echo "INFO: This is a Release...."
                         is_release=true
 
                         # Evaluate Java Image Tag, this is required to handle different Java Versions for builds
@@ -45,6 +46,7 @@ workflows:
                           fi
                     elif [ ${is_preprod_release} = 1 ];
                       then
+                        echo "INFO: This is a Pre-Prod Deployment...."                      
                         is_release=false
 
                         # Evaluate Java Image Tag, this is required to handle different Java Versions for builds
