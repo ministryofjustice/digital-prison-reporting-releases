@@ -37,6 +37,7 @@ workflows:
           notify_slack: false
           tag: << pipeline.parameters.tag >>
           is_pr: << pipeline.parameters.is_pr >>
+          pull_request: << pipeline.parameters.is_pr >>
           is_rollback: false
           context:
             - hmpps-reporting-common
