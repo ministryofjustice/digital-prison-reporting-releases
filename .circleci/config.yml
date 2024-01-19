@@ -59,7 +59,7 @@ workflows:
                             echo "INFO: JAVA_TAG is set to 'default'"
                             echo '}' >> /home/circleci/params.json
                           fi
-                    elif [[ ${is_preprod_release} = 1 && ${is_prod_release} = 1 ]];
+                    elif [ ${is_preprod_release} = 1 ] && [ ${is_prod_release} = 1 ];
                       then
                         echo "Error, Cannot Perform Release and Deploy to Preprod same Time.."
                         exit 1
