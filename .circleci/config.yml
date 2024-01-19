@@ -49,7 +49,7 @@ workflows:
 
                         # Evaluate Java Image Tag, this is required to handle different Java Versions for builds
                         is_reporting_job=`git diff --name-only origin/main...$CIRCLE_SHA1 preprod/digital-prison-reporting-jobs.yml | wc -l`
-                          if [ ${is_reporting_job} = 1 ]
+                          if [ ${is_reporting_job} = 1 ];
                           then
                             JAVA_TAG="8.0"
                             # Pass TAG into Params File
@@ -59,7 +59,7 @@ workflows:
                             echo "INFO: JAVA_TAG is set to 'default'"
                             echo '}' >> /home/circleci/params.json
                           fi
-                    elif [ ${is_preprod_release} = 1 && ${is_prod_release} = 1 ] 
+                    elif [[ ${is_preprod_release} = 1 && ${is_prod_release} = 1 ]];
                       then
                         echo "Error, Cannot Perform Release and Deploy to Preprod same Time.."
                         exit 1
