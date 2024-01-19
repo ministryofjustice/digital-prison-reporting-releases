@@ -64,6 +64,7 @@ workflows:
                     elif [ ${is_preprod_release} = 1 ] && [ ${is_prod_release} = 1 ];
                       then
                         echo "Error, Cannot Perform Release and Deploy to Preprod same Time.."
+                        echo '}' >> /home/circleci/params.json
                         exit 1
                     fi    
                     cat /home/circleci/params.json 
