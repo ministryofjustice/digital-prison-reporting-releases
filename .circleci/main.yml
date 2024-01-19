@@ -18,10 +18,16 @@ parameters:
     default: "11.0"    
   is_release:
     type: string
-    default: "release"    
+    default: "release"   
+  skip:
+    description: if set to true will skip the workflow
+    type: boolean
+    default: false     
 
 workflows:
   release:
+    when: # Skip if the Set to True
+      not: <<pipeline.parameters.skip>> 
     jobs:
       - reporting/generic_release:
           sync_args: "--exclude '*' --include '*-all*jar'"
