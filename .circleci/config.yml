@@ -2,11 +2,12 @@ setup: true
 version: 2.1
 orbs:
   continuation: circleci/continuation@0.2.0
+  path-filtering: circleci/path-filtering@1.0.0
 
 workflows:
   setup:
     jobs: 
-      - clone
+      - clone    
       - continuation/continue:
           configuration_path: ".circleci/main.yml"
           parameters: /home/circleci/params.json
@@ -16,7 +17,7 @@ workflows:
             - run:
                 command: |
                   # Evaluate if Pull Request
-                  if [ -z "${CIRCLE_PULL_REQUEST##*/}" ]
+                  if [ -z "${CIRCLE_PULL_REQUEST##*/}" ];
                   then
                     IS_PR=false
                   else
@@ -24,18 +25,52 @@ workflows:
                   fi
                   echo '{ "is_pr": '$IS_PR'' >> /home/circleci/params.json
                   
-                  # Evaluate Java Image Tag, this is required to handle different Java Versions for builds
-                  modified_file=`git diff --name-only origin/main...$CIRCLE_SHA1 prod/digital-prison-reporting-jobs.yml | wc -l`
-                  if [ ${modified_file} = 1 ]
-                  then
-                    JAVA_TAG="8.0"
-                    # Pass TAG into Params File
-                    echo ', "tag": "'"$JAVA_TAG"'" }' >> /home/circleci/params.json
-                    echo "INFO: Triggering Build using Java Image Tag: $JAVA_TAG"
-                  else
-                    echo "INFO: JAVA_TAG is set to 'default'"
-                    echo '}' >> /home/circleci/params.json
-                  fi
+                  is_prod_release=`git diff --name-only origin/main...$CIRCLE_SHA1 prod/*.yml | wc -l`
+                  is_preprod_release=`git diff --name-only origin/main...$CIRCLE_SHA1 preprod/*.yml | wc -l`
+
+                  echo "INFO: IS_PROD_RELEASE: $is_prod_release, IS_PREPROD_RELEASE: $is_preprod_release"
+                  if [ ${is_prod_release} = 1 ];
+                    then
+                      echo "INFO: This is a Release...."
+                      is_release=true
+
+                      # Evaluate Java Image Tag, this is required to handle different Java Versions for builds
+                      is_reporting_job=`git diff --name-only origin/main...$CIRCLE_SHA1 prod/digital-prison-reporting-jobs.yml | wc -l`
+                        if [ ${is_reporting_job} = 1 ];
+                        then
+                          JAVA_TAG="8.0"
+                          # Pass TAG into Params File
+                          echo ', "tag": "'"$JAVA_TAG"'" }' >> /home/circleci/params.json
+                          echo "INFO: Triggering Build using Java Image Tag: $JAVA_TAG"
+                        else
+                          echo "INFO: JAVA_TAG is set to 'default'"
+                          echo '}' >> /home/circleci/params.json
+                        fi
+                  elif [ ${is_preprod_release} = 1 ];
+                    then
+                      echo "INFO: This is a Pre-Prod Deployment...."                      
+                      is_release=false
+
+                      # Evaluate Java Image Tag, this is required to handle different Java Versions for builds
+                      is_reporting_job=`git diff --name-only origin/main...$CIRCLE_SHA1 preprod/digital-prison-reporting-jobs.yml | wc -l`
+                        if [ ${is_reporting_job} = 1 ];
+                        then
+                          JAVA_TAG="8.0"
+                          # Pass TAG into Params File
+                          echo ', "tag": "'"$JAVA_TAG"'" }' >> /home/circleci/params.json
+                          echo "INFO: Triggering Build using Java Image Tag: $JAVA_TAG"
+                        else
+                          echo "INFO: JAVA_TAG is set to 'default'"
+                          echo '}' >> /home/circleci/params.json
+                        fi
+                  elif [ ${is_preprod_release} = 1 ] && [ ${is_prod_release} = 1 ];
+                    then
+                      echo "Error, Cannot Perform Release and Deploy to Preprod same Time.."
+                      echo ', "skip": true }' >> /home/circleci/params.json
+                  else 
+                      echo "Error, Cannot Perform Release, Verify if the Config changes are specfifc to a Single Component"
+                      echo ', "skip": true }' >> /home/circleci/params.json
+                  fi    
                   cat /home/circleci/params.json 
           requires: [clone]        
            
