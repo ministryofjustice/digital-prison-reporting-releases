@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  reporting: ministryofjustice/hmpps-reporting@dev:7f880b2736b4f59ee9a329a11c3740a15e7ced51
+  reporting: ministryofjustice/hmpps-reporting@dev:9feec0ddec1d7bcdcb86f94bc65f804bfccb31ea
 
 parameters:
   project:
