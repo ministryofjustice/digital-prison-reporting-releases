@@ -40,7 +40,7 @@ workflows:
          # tag: "1.4.0-awscli-v1-0.1"
           executor: 
             name: 'reporting/terraform-aws'
-            tag: '1.4.0-awscli-v1-0.3-wip-1'
+            tag: '1.4.0-awscli-v1-0.3-wip-2'
           is_pr: << pipeline.parameters.is_pr >>
           pull_request: << pipeline.parameters.is_pr >>
           is_rollback: false
