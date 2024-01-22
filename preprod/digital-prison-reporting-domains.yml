@@ -2,4 +2,4 @@ release:
   project: digital-prison-reporting-domains
   release_type: terraform
   release_category: backend
-  tag: v0.0.2
+  tag: v0.0.3
