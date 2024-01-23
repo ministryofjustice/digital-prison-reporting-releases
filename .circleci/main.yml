@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  reporting: ministryofjustice/hmpps-reporting@dev:9e41bb9ad6dad1878d12f4a1366e9cbae074b45d
+  reporting: ministryofjustice/hmpps-reporting@dev:7fdd5b4fe6c05621cd630e7d30e791b1590730a0
 
 parameters:
   project:
@@ -22,7 +22,10 @@ parameters:
   skip:
     description: if set to true will skip the workflow
     type: boolean
-    default: false     
+    default: false  
+  terraform_pipeline:
+    type: boolean
+    default: false
 
 workflows:
   release:
@@ -35,6 +38,7 @@ workflows:
           build_args: "-x test"
           dry_run: false
           notify_slack: false
+          terraform_pipeline: << pipeline.parameters.terraform_pipeline >>
          # executor: terraform
          # tag: << pipeline.parameters.tag >>
          # tag: "1.4.0-awscli-v1-0.1"
@@ -43,6 +47,7 @@ workflows:
             tag: '1.4.0-awscli-v1-0.3-wip-6'
           is_pr: << pipeline.parameters.is_pr >>
           pull_request: << pipeline.parameters.is_pr >>
+          ref: << pipeline.git.branch >><< pipeline.git.tag >>
           is_rollback: false
           context:
             - hmpps-reporting-common
