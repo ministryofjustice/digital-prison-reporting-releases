@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  reporting: ministryofjustice/hmpps-reporting@dev:fdc45f6213213a9255e34cc30f6a3345aae8d65e
+  reporting: ministryofjustice/hmpps-reporting@dev:4e67df7f8d27baa3172c2c7edd90759c8f5b527a
 
 parameters:
   project:
@@ -44,7 +44,7 @@ workflows:
          # tag: "1.4.0-awscli-v1-0.1"
           executor: 
             name: 'reporting/terraform-aws'
-            tag: '1.4.0-awscli-v1-0.3-wip-6'
+            tag: '1.4.0-awscli-v1-0.3-wip-7'
           is_pr: << pipeline.parameters.is_pr >>
           pull_request: << pipeline.parameters.is_pr >>
           ref: << pipeline.git.branch >><< pipeline.git.tag >>
