@@ -30,7 +30,7 @@ parameters:
 workflows:
   release:
     when: # Skip if the Set to True
-      not: <<pipeline.parameters.skip>> 
+      not: <<pipeline.parameters.skip>>
     jobs:
       - reporting/generic_release:
           sync_args: "--exclude '*' --include '*-all*jar'"
@@ -39,14 +39,10 @@ workflows:
           dry_run: false
           notify_slack: false
           terraform_pipeline: << pipeline.parameters.terraform_pipeline >>
-         # executor: terraform
-         # tag: << pipeline.parameters.tag >>
-         # tag: "1.4.0-awscli-v1-0.1"
           executor: 
             name: 'reporting/terraform-aws'
             tag: '1.4.0-awscli-v1-0.3-wip-7'
           is_pr: << pipeline.parameters.is_pr >>
-          pull_request: << pipeline.parameters.is_pr >>
           ref: << pipeline.git.branch >><< pipeline.git.tag >>
           is_rollback: false
           context:
