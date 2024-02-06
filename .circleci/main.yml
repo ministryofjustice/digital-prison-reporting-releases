@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  reporting: ministryofjustice/hmpps-reporting@dev:ae0942b26817c0269576b081c0a79c18ca311988
+  reporting: ministryofjustice/hmpps-reporting@dev:eb3bf62ee35e97b3796e541a21317915f417cec9
 
 parameters:
   project:
@@ -23,9 +23,9 @@ parameters:
     description: if set to true will skip the workflow
     type: boolean
     default: false  
-  terraform_pipeline:
-    type: boolean
-    default: false
+  project_key:
+    type: string
+    default: ""
 
 workflows:
   release:
@@ -38,7 +38,7 @@ workflows:
           build_args: "-x test"
           dry_run: false
           notify_slack: false
-          terraform_pipeline: << pipeline.parameters.terraform_pipeline >>
+          project_key: << pipeline.parameters.project_key >>
           executor: 
             name: 'reporting/terraform-aws'
             tag: '1.4.0-awscli-v1-0.3-wip-7'

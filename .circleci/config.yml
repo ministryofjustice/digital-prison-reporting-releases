@@ -65,15 +65,15 @@ workflows:
                       then
                         JAVA_TAG="8.0"
                         # Pass TAG into Params File
-                        echo ', "tag": "'"$JAVA_TAG"'" }' >> /home/circleci/params.json
+                        echo ', "tag": "'"$JAVA_TAG"'", "project_key": "gradle" }' >> /home/circleci/params.json
                         echo "INFO: Triggering Build using Java Image Tag: $JAVA_TAG"
                       elif [ ${is_terraform_job} = 1 ];
                       then
                         echo "INFO: JAVA_TAG is set to 'default'"
-                        echo ', "terraform_pipeline": true }' >> /home/circleci/params.json                           
+                        echo ', "project_key": "terraform" }' >> /home/circleci/params.json                           
                       else
                         echo "INFO: JAVA_TAG is set to 'default'"
-                        echo '}' >> /home/circleci/params.json
+                        echo ', "project_key": "gradle" }' >> /home/circleci/params.json
                       fi
                   elif [ ${is_preprod_release} = 1 ];
                     then
@@ -89,15 +89,15 @@ workflows:
                       then
                         JAVA_TAG="8.0"
                         # Pass TAG into Params File
-                        echo ', "tag": "'"$JAVA_TAG"'" }' >> /home/circleci/params.json
+                        echo ', "tag": "'"$JAVA_TAG"'", "project_key": "gradle" }' >> /home/circleci/params.json
                         echo "INFO: Triggering Build using Java Image Tag: $JAVA_TAG"
                       elif [ ${is_terraform_job} = 1 ];
                       then
                         echo "INFO: JAVA_TAG is set to 'default'"
-                        echo ', "terraform_pipeline": true }' >> /home/circleci/params.json                            
+                        echo ', "project_key": "terraform" }' >> /home/circleci/params.json                            
                       else
                         echo "INFO: JAVA_TAG is set to 'default'"
-                        echo '}' >> /home/circleci/params.json
+                        echo ', "project_key": "gradle" }' >> /home/circleci/params.json
                       fi
                   elif [ ${is_preprod_release} = 1 ] && [ ${is_prod_release} = 1 ];
                     then
