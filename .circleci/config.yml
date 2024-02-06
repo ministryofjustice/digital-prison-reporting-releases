@@ -35,12 +35,12 @@ workflows:
                       is_release=true
 
                       # Evaluate Java Image Tag, this is required to handle different Java Versions for builds
-                      if [ ${IS_PR} = 1 ];
+                      if [ ${IS_PR} = true ];
                         then
                           echo "Active PR Detected, Evaluating the JOB Type..."
                           is_reporting_job=`git diff --name-only origin/main...$CIRCLE_SHA1 prod/digital-prison-reporting-jobs.yml | wc -l`
                           is_terraform_job=`git diff --name-only origin/main...$CIRCLE_SHA1 prod/digital-prison-reporting-domains.yml | wc -l`
-                      elif [ ${IS_PR} = 0 ];
+                      elif [ ${IS_PR} = false ];
                         then
                           echo "NO Active PR Detected, Evaluating the JOB Type..."
                           is_reporting_job=`git diff --name-only origin/main..HEAD~1 prod/digital-prison-reporting-jobs.yml | wc -l`
@@ -67,12 +67,12 @@ workflows:
                       is_release=false
 
                       # Evaluate Java Image Tag, this is required to handle different Java Versions for builds
-                      if [ ${IS_PR} = 1 ];
+                      if [ ${IS_PR} = true ];
                         then
                           echo "Active PR Detected, Evaluating the JOB Type..."
                           is_reporting_job=`git diff --name-only origin/main...$CIRCLE_SHA1 preprod/digital-prison-reporting-jobs.yml | wc -l`
                           is_terraform_job=`git diff --name-only origin/main...$CIRCLE_SHA1 preprod/digital-prison-reporting-domains.yml | wc -l`
-                      elif [ ${IS_PR} = 0 ];
+                      elif [ ${IS_PR} = false ];
                         then
                           echo "NO Active PR Detected, Evaluating the JOB Type..."
                           is_reporting_job=`git diff --name-only origin/main..HEAD~1 preprod/digital-prison-reporting-jobs.yml | wc -l`
