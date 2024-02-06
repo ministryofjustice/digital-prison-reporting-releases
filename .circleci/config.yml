@@ -46,8 +46,8 @@ workflows:
                       is_preprod_release=`git diff --name-only origin/main...$CIRCLE_SHA1 preprod/*.yml | wc -l`
                   elif [ ${IS_PR} = false ];
                     then
-                      is_prod_release=`git diff --name-only origin/main...HEAD~1 prod/*.yml | wc -l`
-                      is_preprod_release=`git diff --name-only origin/main...HEAD~1 preprod/*.yml | wc -l`
+                      is_prod_release=`git diff --name-only origin/main..HEAD~1 prod/*.yml | wc -l`
+                      is_preprod_release=`git diff --name-only origin/main..HEAD~1 preprod/*.yml | wc -l`
                   fi          
 
                   echo "INFO: IS_PROD_RELEASE: $is_prod_release, IS_PREPROD_RELEASE: $is_preprod_release"
