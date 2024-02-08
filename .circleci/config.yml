@@ -94,7 +94,7 @@ workflows:
                       elif [ ${is_terraform_job} = 1 ];
                       then
                         echo "INFO: JAVA_TAG is set to 'default'"
-                        echo ', "project_key": "terraform" }' >> /home/circleci/params.json                            
+                        echo ', "project_key": "terraform", "executor": "reporting/terraform-aws", "tag": "1.4.0-awscli-v1-0.3-wip-7" }' >> /home/circleci/params.json                          
                       else
                         echo "INFO: JAVA_TAG is set to 'default'"
                         echo ', "project_key": "gradle" }' >> /home/circleci/params.json
@@ -106,8 +106,9 @@ workflows:
                   else 
                       echo "Error, Cannot Perform Release, Verify if the Config changes are specfifc to a Single Component"
                       echo ', "skip": true }' >> /home/circleci/params.json
+                      exit 1
                   fi    
-                  cat /home/circleci/params.json 
+                  cat /home/circleci/params.json
           requires: [clone]        
            
 jobs:
