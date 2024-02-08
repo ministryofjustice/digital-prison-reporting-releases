@@ -3,6 +3,7 @@ release:
   release_type: gradle
   release_category: backend
   tag: v0.0.6
+  bump: 1
   extra_args:
     refresh_lambda: true
     refresh_function: dpr-pipeline-notification-function
