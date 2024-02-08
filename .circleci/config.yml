@@ -103,6 +103,10 @@ workflows:
                     then
                       echo "Error, Cannot Perform Release and Deploy to Preprod same Time.."
                       echo ', "skip": true }' >> /home/circleci/params.json
+                  elif [ ${is_preprod_release} = 0 ] && [ ${is_prod_release} = 0 ];
+                      echo "WARN, Cannot Perform Release, Verify if the Config changes are specfifc atleast 1 Component"
+                      echo ', "skip": true }' >> /home/circleci/params.json
+                      exit 1
                   else 
                       echo "Error, Cannot Perform Release, Verify if the Config changes are specfifc to a Single Component"
                       echo ', "skip": true }' >> /home/circleci/params.json
