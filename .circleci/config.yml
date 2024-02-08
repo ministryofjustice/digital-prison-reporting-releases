@@ -107,7 +107,6 @@ workflows:
                     then
                       echo "WARN, Cannot Perform Release, Verify if the Config changes are specfifc atleast 1 Component"
                       echo ', "skip": true }' >> /home/circleci/params.json
-                      exit 1
                   else 
                       echo "Error, Cannot Perform Release, Verify if the Config changes are specfifc to a Single Component"
                       echo ', "skip": true }' >> /home/circleci/params.json
