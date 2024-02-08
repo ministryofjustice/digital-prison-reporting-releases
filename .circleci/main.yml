@@ -57,6 +57,7 @@ workflows:
               only: /.*/
             tags:
               ignore: /.*/
+          requires: [build_type]
 
 jobs:
   build_type:
