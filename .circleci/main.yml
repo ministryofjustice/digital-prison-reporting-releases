@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  reporting: ministryofjustice/hmpps-reporting@dev:25b0e01e94832e77b34d42fbc69d953c8ea73f6b
+  reporting: ministryofjustice/hmpps-reporting@dev:33e4c01b46f8d54ff1c164af58da1b9bcf180f42
 
 parameters:
   project:
@@ -20,8 +20,8 @@ parameters:
     type: string
     default: "11.0"    
   is_release:
-    type: string
-    default: "release"   
+    type: boolean
+    default: false  
   skip:
     description: if set to true will skip the workflow
     type: boolean
@@ -47,6 +47,7 @@ workflows:
             name: << pipeline.parameters.executor >>
             tag: << pipeline.parameters.tag >>
           is_pr: << pipeline.parameters.is_pr >>
+          is_release: << pipeline.parameters.is_release >>
           ref: << pipeline.git.branch >><< pipeline.git.tag >>
           is_rollback: false
           context:
@@ -56,6 +57,7 @@ workflows:
               only: /.*/
             tags:
               ignore: /.*/
+          requires: [build_type]
 
 jobs:
   build_type:

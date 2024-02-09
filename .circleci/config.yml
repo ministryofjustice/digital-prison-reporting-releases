@@ -65,15 +65,15 @@ workflows:
                       then
                         JAVA_TAG="8.0"
                         # Pass TAG into Params File
-                        echo ', "tag": "'"$JAVA_TAG"'", "project_key": "gradle" }' >> /home/circleci/params.json
+                        echo ', "is_release": true, "tag": "'"$JAVA_TAG"'", "project_key": "gradle" }' >> /home/circleci/params.json
                         echo "INFO: Triggering Build using Java Image Tag: $JAVA_TAG"
                       elif [ ${is_terraform_job} = 1 ];
                       then
                         echo "INFO: JAVA_TAG is set to 'default'"
-                        echo ', "project_key": "terraform" }' >> /home/circleci/params.json                           
+                        echo ', "is_release": true, "project_key": "terraform" }' >> /home/circleci/params.json                           
                       else
                         echo "INFO: JAVA_TAG is set to 'default'"
-                        echo ', "project_key": "gradle" }' >> /home/circleci/params.json
+                        echo ', "is_release": true, "project_key": "gradle" }' >> /home/circleci/params.json
                       fi
                   elif [ ${is_preprod_release} = 1 ];
                     then
@@ -89,15 +89,15 @@ workflows:
                       then
                         JAVA_TAG="8.0"
                         # Pass TAG into Params File
-                        echo ', "tag": "'"$JAVA_TAG"'", "project_key": "gradle" }' >> /home/circleci/params.json
+                        echo ', "is_release": false, "tag": "'"$JAVA_TAG"'", "project_key": "gradle" }' >> /home/circleci/params.json
                         echo "INFO: Triggering Build using Java Image Tag: $JAVA_TAG"
                       elif [ ${is_terraform_job} = 1 ];
                       then
                         echo "INFO: JAVA_TAG is set to 'default'"
-                        echo ', "project_key": "terraform", "executor": "reporting/terraform-aws", "tag": "1.4.0-awscli-v1-0.3-wip-7" }' >> /home/circleci/params.json                          
+                        echo ', "is_release": false, "project_key": "terraform", "executor": "reporting/terraform-aws", "tag": "1.4.0-awscli-v1-0.3-wip-7" }' >> /home/circleci/params.json                          
                       else
                         echo "INFO: JAVA_TAG is set to 'default'"
-                        echo ', "project_key": "gradle" }' >> /home/circleci/params.json
+                        echo ', "is_release": false, "project_key": "gradle" }' >> /home/circleci/params.json
                       fi
                   elif [ ${is_preprod_release} = 1 ] && [ ${is_prod_release} = 1 ];
                     then
