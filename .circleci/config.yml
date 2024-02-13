@@ -16,6 +16,9 @@ workflows:
                 at: .    
             - run:
                 command: |
+                  # YQ Versions
+                  yq -V 
+                                 
                   # Evaluate if Pull Request
                   if [ -z "${CIRCLE_PULL_REQUEST##*/}" ];
                   then
