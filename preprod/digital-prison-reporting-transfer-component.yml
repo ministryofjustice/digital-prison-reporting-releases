@@ -6,3 +6,4 @@ release:
   extra_args:
     flyway_args: ', "outOfOrder": true'
     flyway_function: dpr-transfer-component-function
+    flyway_release_branch: main
