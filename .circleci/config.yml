@@ -32,11 +32,13 @@ workflows:
                           echo "Active PR Detected, Evaluating the JOB Type..."
                           is_reporting_job=`git diff --name-only origin/main...$CIRCLE_SHA1 $1/digital-prison-reporting-jobs.yml | wc -l`
                           is_terraform_job=`git diff --name-only origin/main...$CIRCLE_SHA1 $1/digital-prison-reporting-domains.yml | wc -l`
+                          is_flyway_job=`git diff --name-only origin/main...$CIRCLE_SHA1 $1/digital-prison-reporting-transfer-component.yml | wc -l`
                       elif [ ${IS_PR} = false ];
                         then
                           echo "NO Active PR Detected, Evaluating the JOB Type..."
                           is_reporting_job=`git diff --name-only origin/main..HEAD~1 $1/digital-prison-reporting-jobs.yml | wc -l`
                           is_terraform_job=`git diff --name-only origin/main..HEAD~1 $1/digital-prison-reporting-domains.yml | wc -l`
+                          is_flyway_job=`git diff --name-only origin/main..HEAD~1 $1/digital-prison-reporting-transfer-component.yml | wc -l`
                       fi                      
                   }                   
 
@@ -62,15 +64,18 @@ workflows:
 
                       # Set Params 
                       if [ ${is_reporting_job} = 1 ];
-                      then
-                        JAVA_TAG="8.0"
-                        # Pass TAG into Params File
-                        echo ', "is_release": true, "tag": "'"$JAVA_TAG"'", "project_key": "gradle" }' >> /home/circleci/params.json
-                        echo "INFO: Triggering Build using Java Image Tag: $JAVA_TAG"
+                        then
+                          JAVA_TAG="8.0"
+                          # Pass TAG into Params File
+                          echo ', "is_release": true, "tag": "'"$JAVA_TAG"'", "project_key": "gradle" }' >> /home/circleci/params.json
+                          echo "INFO: Triggering Build using Java Image Tag: $JAVA_TAG"
                       elif [ ${is_terraform_job} = 1 ];
-                      then
-                        echo "INFO: JAVA_TAG is set to 'default'"
-                        echo ', "is_release": true, "project_key": "terraform" }' >> /home/circleci/params.json                           
+                        then
+                          echo "INFO: JAVA_TAG is set to 'default'"
+                          echo ', "is_release": true, "project_key": "terraform" }' >> /home/circleci/params.json
+                      elif [ ${is_flyway_job} = 1 ];
+                        then
+                          echo ', "is_release": true, "project_key": "flyway" }' >> /home/circleci/params.json
                       else
                         echo "INFO: JAVA_TAG is set to 'default'"
                         echo ', "is_release": true, "project_key": "gradle" }' >> /home/circleci/params.json
@@ -86,15 +91,18 @@ workflows:
 
                       # Set Params
                       if [ ${is_reporting_job} = 1 ];
-                      then
-                        JAVA_TAG="8.0"
-                        # Pass TAG into Params File
-                        echo ', "is_release": false, "tag": "'"$JAVA_TAG"'", "project_key": "gradle" }' >> /home/circleci/params.json
-                        echo "INFO: Triggering Build using Java Image Tag: $JAVA_TAG"
+                        then
+                          JAVA_TAG="8.0"
+                          # Pass TAG into Params File
+                          echo ', "is_release": false, "tag": "'"$JAVA_TAG"'", "project_key": "gradle" }' >> /home/circleci/params.json
+                          echo "INFO: Triggering Build using Java Image Tag: $JAVA_TAG"
                       elif [ ${is_terraform_job} = 1 ];
-                      then
-                        echo "INFO: JAVA_TAG is set to 'default'"
-                        echo ', "is_release": false, "project_key": "terraform", "executor": "reporting/terraform-aws", "tag": "1.4.0-awscli-v1-0.3-wip-7" }' >> /home/circleci/params.json                          
+                        then
+                          echo "INFO: JAVA_TAG is set to 'default'"
+                          echo ', "is_release": false, "project_key": "terraform", "executor": "reporting/terraform-aws", "tag": "1.4.0-awscli-v1-0.3-wip-7" }' >> /home/circleci/params.json
+                      elif [ ${is_flyway_job} = 1 ];
+                        then
+                          echo ', "is_release": false, "project_key": "flyway", "executor": "reporting/aws", "tag": "2023.12.1"}' >> /home/circleci/params.json                                             
                       else
                         echo "INFO: JAVA_TAG is set to 'default'"
                         echo ', "is_release": false, "project_key": "gradle" }' >> /home/circleci/params.json
