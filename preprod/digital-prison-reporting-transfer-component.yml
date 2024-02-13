@@ -1,0 +1,8 @@
+release:
+  project: digital-prison-reporting-transfer-component
+  release_type: flyway
+  release_category: backend
+  tag: v0.0.10
+  extra_args:
+    flyway_args: ', "outOfOrder": true'
+    flyway_function: dpr-transfer-component-function

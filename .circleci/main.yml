@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  reporting: ministryofjustice/hmpps-reporting@dev:a214b8fb603e4c8eda2a2cb3829e43324f551ee1
+  reporting: ministryofjustice/hmpps-reporting@dev:12a57405278432e9cce07a16d9a98b5cf6a43ad8
 
 parameters:
   project:
@@ -42,6 +42,7 @@ workflows:
           build_args: "-x test"
           dry_run: false
           notify_slack: false
+          skip_flyway_validate: true
           project_key: << pipeline.parameters.project_key >>
           executor: 
             name: << pipeline.parameters.executor >>
