@@ -1,7 +1,11 @@
 version: 2.1
 
 orbs:
+<<<<<<< HEAD
   reporting: ministryofjustice/hmpps-reporting@dev:0adb7ce9b0c6649fbd0efe22f38f18639e174120
+=======
+  reporting: ministryofjustice/hmpps-reporting@dev:74a042e8c185388288d42405b134dbb0eb202d8f
+>>>>>>> b508958 (Update main.yml)
 
 parameters:
   project:
