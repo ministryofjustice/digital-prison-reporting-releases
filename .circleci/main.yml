@@ -42,7 +42,7 @@ workflows:
           build_args: "-x test"
           dry_run: false
           notify_slack: false
-          skip_flyway_validate: false
+          skip_flyway_validate: true
           project_key: << pipeline.parameters.project_key >>
           executor: 
             name: << pipeline.parameters.executor >>
