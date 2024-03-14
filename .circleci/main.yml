@@ -1,7 +1,11 @@
 version: 2.1
 
 orbs:
+<<<<<<< HEAD
   reporting: ministryofjustice/hmpps-reporting@dev:64b814a6baa9ad0a669c92c7c467adfd7e2143a8
+=======
+  reporting: ministryofjustice/hmpps-reporting@dev:7e86e3b7108b2ae5d000cc2c7b1d5c58e0318b97
+>>>>>>> 1082262 (Validate Preprod Sync)
 
 parameters:
   project:
@@ -25,7 +29,11 @@ parameters:
   skip:
     description: if set to true will skip the workflow
     type: boolean
-    default: false  
+    default: false
+  sync_artifacts:
+    description: Sync Artifacts to S3, Only Valid for Service Bundle
+    type: boolean
+    default: false    
   project_key:
     type: string
     default: ""
@@ -43,6 +51,7 @@ workflows:
           dry_run: false
           notify_slack: false
           skip_flyway_validate: true
+          aws_sync_artifacts: << pipeline.parameters.sync_artifacts >>
           project_key: << pipeline.parameters.project_key >>
           executor: 
             name: << pipeline.parameters.executor >>
