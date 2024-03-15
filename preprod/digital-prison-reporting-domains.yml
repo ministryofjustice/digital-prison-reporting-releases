@@ -8,7 +8,7 @@ release:
     bucket_prefix: dpr-glue-jobs
     src_artifacts_path: mappings
     sync_args: '--exclude \"*\" --include \"*/*config.json\" --delete --cli-connect-timeout 0 --cli-read-timeout 0'
-    list_args: "--recursive"
+    list_args: '--recursive'
     is_gradle_build: false
     bucket_path_suffix: configs
     sync_type: copy
