@@ -11,4 +11,5 @@ release:
     list_args: '--recursive'
     is_gradle_build: false
     bucket_path_suffix: configs
+    exclude_app_name_from_dest_suffix: true
     sync_type: copy
