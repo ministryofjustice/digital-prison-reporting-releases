@@ -4,11 +4,12 @@ release:
   release_category: backend
   tag: v0.0.30
   s3_sync_args:
-    app_dir: .
+    app_dir: ./project
     bucket_prefix: dpr-glue-jobs
     src_artifacts_path: mappings
-    sync_args: "--exclude '*' --include '*/*config.json' --delete --cli-connect-timeout 0 --cli-read-timeout 0"
-    list_args: "--recursive"
+    sync_args: '--exclude \"*\" --include \"*/*config.json\" --delete --cli-connect-timeout 0 --cli-read-timeout 0'
+    list_args: '--recursive'
     is_gradle_build: false
     bucket_path_suffix: configs
-    sync_type: copy
+    exclude_app_name_from_dest_suffix: true
+    sync_type: sync_only
