@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  reporting: ministryofjustice/hmpps-reporting@dev:924fa2f675162bdd489c4a952091b14c18e2b820
+  reporting: ministryofjustice/hmpps-reporting@dev:b77080bf7c3421c9f05192c9fb225e6929124f7e
 
 parameters:
   project:
@@ -18,7 +18,10 @@ parameters:
     default: 'reporting/java'
   tag:
     type: string
-    default: "11.0"    
+    default: "11.0"
+  resource_class:
+    type: string
+    default: "large"    
   is_release:
     type: boolean
     default: false  
@@ -52,6 +55,7 @@ workflows:
           executor: 
             name: << pipeline.parameters.executor >>
             tag: << pipeline.parameters.tag >>
+            class: << pipeline.parameters.resource_class >>
           is_pr: << pipeline.parameters.is_pr >>
           is_release: << pipeline.parameters.is_release >>
           ref: << pipeline.git.branch >><< pipeline.git.tag >>
