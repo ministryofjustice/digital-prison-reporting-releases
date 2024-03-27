@@ -18,7 +18,10 @@ parameters:
     default: 'reporting/java'
   tag:
     type: string
-    default: "11.0"    
+    default: "11.0"
+  resource_class:
+    type: string
+    default: "large"    
   is_release:
     type: boolean
     default: false  
@@ -52,6 +55,7 @@ workflows:
           executor: 
             name: << pipeline.parameters.executor >>
             tag: << pipeline.parameters.tag >>
+            resource_class: << pipeline.parameters.resource_class >>
           is_pr: << pipeline.parameters.is_pr >>
           is_release: << pipeline.parameters.is_release >>
           ref: << pipeline.git.branch >><< pipeline.git.tag >>
