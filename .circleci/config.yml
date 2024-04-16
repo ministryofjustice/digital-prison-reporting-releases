@@ -30,9 +30,9 @@ workflows:
                       if [ ${IS_PR} = true ];
                         then
                           echo "Active PR Detected, Evaluating the JOB Type..."
-                          is_reporting_job=`git diff --name-only origin/main..HEAD~1 $1/digital-prison-reporting-jobs.yml | wc -l`
-                          is_terraform_job=`git diff --name-only origin/main..HEAD~1 $1/digital-prison-reporting-domains.yml | wc -l` || true
-                          is_flyway_job=`git diff --name-only origin/main..HEAD~1 $1/digital-prison-reporting-transfer-component.yml | wc -l` || true
+                          is_reporting_job=`git diff --name-only origin/main...$CIRCLE_SHA1 $1/digital-prison-reporting-jobs.yml | wc -l`
+                          is_terraform_job=`git diff --name-only origin/main...$CIRCLE_SHA1 $1/digital-prison-reporting-domains.yml | wc -l` || true
+                          is_flyway_job=`git diff --name-only origin/main...$CIRCLE_SHA1 $1/digital-prison-reporting-transfer-component.yml | wc -l`  || true
                       elif [ ${IS_PR} = false ];
                         then
                           echo "NO Active PR Detected, Evaluating the JOB Type..."
@@ -44,8 +44,8 @@ workflows:
 
                   if [ ${IS_PR} = true ];
                     then
-                      is_prod_release=`git diff --name-only origin/main..HEAD~1 prod/*.yml | wc -l`
-                      is_preprod_release=`git diff --name-only origin/main..HEAD~1 preprod/*.yml | wc -l`
+                      is_prod_release=`git diff --name-only origin/main...$CIRCLE_SHA1 prod/*.yml | wc -l`
+                      is_preprod_release=`git diff --name-only origin/main...$CIRCLE_SHA1 preprod/*.yml | wc -l`
                   elif [ ${IS_PR} = false ];
                     then
                       is_prod_release=`git diff --name-only origin/main..HEAD~1 prod/*.yml | wc -l`
