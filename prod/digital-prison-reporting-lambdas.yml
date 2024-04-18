@@ -5,5 +5,5 @@ release:
   tag: v0.0.7
   bump: 1
   extra_args:
-    refresh_lambda: true
+    refresh_lambda: false
     refresh_function: dpr-pipeline-notification-function
