@@ -3,7 +3,7 @@ release:
   release_type: gradle
   release_category: backend
   tag: v1.0.55
-  bump: 1
+  bump: 2
   s3_sync_args:
     app_dir: ./project
     bucket_prefix: dpr-artifact-store
