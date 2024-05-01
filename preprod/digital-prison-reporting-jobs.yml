@@ -2,7 +2,7 @@ release:
   project: digital-prison-reporting-jobs
   release_type: gradle
   release_category: backend
-  tag: v1.0.55
+  tag: v1.0.56
   bump: 3
   s3_sync_args:
     app_dir: ./project
