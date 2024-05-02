@@ -2,7 +2,7 @@ release:
   project: digital-prison-reporting-domains
   release_type: terraform
   release_category: backend
-  tag: v0.0.38
+  tag: v0.0.39
   s3_sync_args:
     app_dir: ./project
     bucket_prefix: dpr-glue-jobs
