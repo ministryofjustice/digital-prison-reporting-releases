@@ -7,5 +7,5 @@ release:
   extra_args:
     flyway_args: ', \"outOfOrder\": true'
     flyway_function: dpr-transfer-component-function
-    flyway_components: "redshift, operationaldatastore"
+    flyway_components: "redshift"
     flyway_release_branch: main
