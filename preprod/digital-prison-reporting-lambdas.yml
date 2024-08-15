@@ -2,7 +2,7 @@ release:
   project: digital-prison-reporting-lambdas
   release_type: gradle
   release_category: backend
-  tag: v0.0.7
+  tag: v0.0.8
   bump: 2
   extra_args:
     refresh_lambda: true
