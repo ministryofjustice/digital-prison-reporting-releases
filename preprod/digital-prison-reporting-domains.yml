@@ -3,7 +3,7 @@ release:
   release_type: terraform
   release_category: backend
   tag: v0.0.122
-  bump: 1
+  bump: 2
   s3_sync_args:
     app_dir: ./project
     bucket_prefix: dpr-glue-jobs
