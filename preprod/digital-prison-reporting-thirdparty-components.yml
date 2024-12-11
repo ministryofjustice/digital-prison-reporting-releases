@@ -6,6 +6,6 @@ release:
   bump: 1
   extra_args:
     jars_path: "jars"
-    zips_path: "zips"
+    zips_path: "zips-1"
     s3_bucket_prefix: "dpr-artifact-store"
     yaml_path: "configs" 
