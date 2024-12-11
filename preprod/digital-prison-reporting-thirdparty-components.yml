@@ -2,7 +2,7 @@ release:
   project: digital-prison-reporting-thirdparty-components
   release_type: thirdparty_artifacts
   release_category: backend
-  tag: v0.0.2
+  tag: v0.0.1
   extra_args:
     jars_path: "jars"
     zips_path: "zips"
