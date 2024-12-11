@@ -7,4 +7,4 @@ release:
     jars_path: "jars"
     zips_path: "zips"
     s3_bucket_prefix: "dpr-artifact-store"
-    yaml_path: "configs"
+    yaml_path: "configs" 
