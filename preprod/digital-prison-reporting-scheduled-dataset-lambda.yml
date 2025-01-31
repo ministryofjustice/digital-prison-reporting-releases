@@ -2,7 +2,7 @@ release:
   project: hmpps-dpr-scheduled-dataset-lambda
   release_type: gradle
   release_category: backend
-  tag: v0.0.2
+  tag: v0.0.7
   bump: 2
   extra_args:
     refresh_lambda: false
