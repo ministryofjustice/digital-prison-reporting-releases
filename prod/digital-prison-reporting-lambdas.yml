@@ -2,7 +2,7 @@ release:
   project: digital-prison-reporting-lambdas
   release_type: gradle
   release_category: backend
-  tag: v0.0.12
+  tag: v0.0.20
   bump: 1
   s3_sync_args:
     app_dir: ./project

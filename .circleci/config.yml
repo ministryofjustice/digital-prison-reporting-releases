@@ -74,7 +74,7 @@ workflows:
                       elif [ ${is_terraform_job} = 1 ];
                         then
                           echo "INFO: JAVA_TAG is set to 'default'"
-                          echo ', "is_release": true, "project_key": "terraform", "executor": "reporting/terraform-aws", "tag": "1.4.0-awscli-v1-0.3-wip-7", "sync_artifacts": true }' >> /home/circleci/params.json
+                          echo ', "is_release": true, "project_key": "terraform", "executor": "reporting/terraform-aws", "tag": "v1.10.0-awscliv1-1.0.2", "sync_artifacts": true }' >> /home/circleci/params.json
                       elif [ ${is_flyway_job} = 1 ];
                         then
                           echo ', "is_release": true, "project_key": "flyway", "executor": "reporting/aws", "tag": "2023.12.1"}' >> /home/circleci/params.json
@@ -104,7 +104,7 @@ workflows:
                       elif [ ${is_terraform_job} = 1 ];
                         then
                           echo "INFO: JAVA_TAG is set to 'default'"
-                          echo ', "is_release": false, "project_key": "terraform", "executor": "reporting/terraform-aws", "tag": "1.4.0-awscli-v1-0.3-wip-7", "sync_artifacts": true }' >> /home/circleci/params.json
+                          echo ', "is_release": false, "project_key": "terraform", "executor": "reporting/terraform-aws", "tag": "v1.10.0-awscliv1-1.0.2", "sync_artifacts": true }' >> /home/circleci/params.json
                       elif [ ${is_flyway_job} = 1 ];
                         then
                           echo ', "is_release": false, "project_key": "flyway", "executor": "reporting/aws", "tag": "2023.12.1"}' >> /home/circleci/params.json
