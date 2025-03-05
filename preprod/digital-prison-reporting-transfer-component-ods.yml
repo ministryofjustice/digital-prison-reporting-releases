@@ -2,7 +2,7 @@ release:
   project: digital-prison-reporting-transfer-component
   release_type: flyway
   release_category: backend
-  tag: v0.0.27
+  tag: v0.0.29
   bump: 2
   extra_args:
     flyway_args: ', \"outOfOrder\": true'
