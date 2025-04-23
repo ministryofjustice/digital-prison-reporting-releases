@@ -34,6 +34,7 @@ workflows:
                           is_terraform_job=`git diff --name-only origin/main...$CIRCLE_SHA1 $1/digital-prison-reporting-domains.yml | wc -l`
                           is_flyway_job=`git diff --name-only origin/main...$CIRCLE_SHA1 $1/digital-prison-reporting-transfer-component*.yml | wc -l`
                           is_thirdparty_artifacts_job=`git diff --name-only origin/main...$CIRCLE_SHA1 $1/digital-prison-reporting-thirdparty-components.yml | wc -l`
+                          is_dataset_lambda=`git diff --name-only origin/main...$CIRCLE_SHA1 $1/digital-prison-reporting-scheduled-dataset-lambda.yml | wc -l`
                       elif [ ${IS_PR} = false ];
                         then
                           echo "NO Active PR Detected, Evaluating the JOB Type..."
@@ -41,6 +42,7 @@ workflows:
                           is_terraform_job=`git diff --name-only origin/main..HEAD~1 $1/digital-prison-reporting-domains.yml | wc -l`
                           is_flyway_job=`git diff --name-only origin/main..HEAD~1 $1/digital-prison-reporting-transfer-component*.yml | wc -l`
                           is_thirdparty_artifacts_job=`git diff --name-only origin/main..HEAD~1 $1/digital-prison-reporting-thirdparty-components.yml | wc -l`
+                          is_dataset_lambda=`git diff --name-only origin/main...$CIRCLE_SHA1 $1/digital-prison-reporting-scheduled-dataset-lambda.yml | wc -l`                          
                       fi                      
                   }                   
 
@@ -71,6 +73,12 @@ workflows:
                           # Pass TAG into Params File
                           echo ', "is_release": true, "tag": "'"$JAVA_TAG"'", "project_key": "gradle" }' >> /home/circleci/params.json
                           echo "INFO: Triggering Build using Java Image Tag: $JAVA_TAG"
+                      elif [ ${is_dataset_lambda} = 1 ];
+                        then
+                          JAVA_TAG="21.0"
+                          # Pass TAG into Params File
+                          echo ', "is_release": true, "tag": "'"$JAVA_TAG"'", "project_key": "gradle" }' >> /home/circleci/params.json
+                          echo "INFO: Triggering Build using Java Image Tag: $JAVA_TAG"                      
                       elif [ ${is_terraform_job} = 1 ];
                         then
                           echo "INFO: JAVA_TAG is set to 'default'"
