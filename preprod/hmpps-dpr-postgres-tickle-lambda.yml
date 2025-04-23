@@ -2,9 +2,9 @@ release:
   project: hmpps-dpr-postgres-tickle-lambda
   release_type: gradle
   release_category: backend
-  tag: v0.0.1 # tbc
+  tag: v0.0.1
   extra_args:
-    refresh_lambda: false # tbc
+    refresh_lambda: true
     refresh_function: dpr-postgres-tickle-function
   s3_sync_args:
     app_dir: ./project
