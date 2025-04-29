@@ -34,7 +34,7 @@ workflows:
                           is_terraform_job=`git diff --name-only origin/main...$CIRCLE_SHA1 $1/digital-prison-reporting-domains.yml | wc -l`
                           is_flyway_job=`git diff --name-only origin/main...$CIRCLE_SHA1 $1/digital-prison-reporting-transfer-component*.yml | wc -l`
                           is_thirdparty_artifacts_job=`git diff --name-only origin/main...$CIRCLE_SHA1 $1/digital-prison-reporting-thirdparty-components.yml | wc -l`
-                          is_dataset_lambda=`git diff --name-only origin/main...$CIRCLE_SHA1 $1/digital-prison-reporting-scheduled-dataset-lambda.yml | wc -l`
+                          is_dataset_lambda=$(git diff --name-only origin/main...$CIRCLE_SHA1 -- "$1/digital-prison-reporting-scheduled-dataset-lambda.yml" | wc -l)
                       elif [ ${IS_PR} = false ];
                         then
                           echo "NO Active PR Detected, Evaluating the JOB Type..."
