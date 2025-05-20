@@ -117,7 +117,7 @@ workflows:
                           # Pass TAG into Params File
                           echo ', "is_release": false, "tag": "'"$JAVA_TAG"'", "project_key": "gradle" }' >> /home/circleci/params.json
                           echo "INFO: Triggering Build using Java Image Tag: $JAVA_TAG"
-                      if [ ${is_multiphase_lambda} = 1 ];
+                      elif [ ${is_multiphase_lambda} = 1 ];
                         then
                           JAVA_TAG="21.0"
                           # Pass TAG into Params File
