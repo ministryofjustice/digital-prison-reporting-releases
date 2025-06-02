@@ -2,7 +2,7 @@ release:
   project: hmpps-dpr-multiphase-query-lambda
   release_type: gradle
   release_category: backend
-  tag: v0.0.3
+  tag: v0.0.4
   extra_args:
     refresh_lambda: false
     refresh_function: dpr-multiphase-query-function
