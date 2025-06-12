@@ -11,5 +11,5 @@ release:
     sync_args: '--exclude \"*\" --include \"*-all*jar\"'
     is_gradle_build: true
   extra_args:
-    refresh_lambda: false
+    refresh_lambda: true
     refresh_function: dpr-pipeline-notification-function
