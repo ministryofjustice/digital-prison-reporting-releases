@@ -8,6 +8,6 @@ release:
     app_dir: ./project
     bucket_prefix: dpr-artifact-store
     src_artifacts_path: build/libs/
-    sync_args: '--exclude "*" --include "*-all*jar"'
+    sync_args: '--exclude \"*\" --include \"*-all*jar\"'
     is_gradle_build: true
     deploy_script: true
