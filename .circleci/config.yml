@@ -93,7 +93,11 @@ jobs:
       - run:
           name: Install yq
           command: |
-            sudo apt-get update && sudo apt-get install -y yq
+            # Download yq (v4) binary directly from GitHub
+            YQ_VERSION=v4.35.2
+            curl -L "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64" -o /usr/local/bin/yq
+            chmod +x /usr/local/bin/yq
+            yq --version  # verify it's working
       - persist_to_workspace:
           root: .
           paths:
