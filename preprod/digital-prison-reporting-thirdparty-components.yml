@@ -6,8 +6,8 @@ release:
   executor:
     name: reporting/base               # Docker executor used
     tag: 3.10                          # Specific image tag
-  bump: 1                               # Version bump strategy (optional)
-  s3_sync_args:                         # Artifact handling
+  bump: 2                               # Version bump strategy (optional)
+  s3_sync_args:
     app_dir: ./thirdparty
     bucket_prefix: dpr-thirdparty-artifact-store
     src_artifacts_path: dist/

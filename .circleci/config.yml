@@ -46,6 +46,7 @@ workflows:
                   # 🚨 NEW: Fail early if multiple release files are changed
                   if [ "$is_prod_release" -gt 1 ] || [ "$is_preprod_release" -gt 1 ]; then
                     echo "ERROR: Multiple release job files detected (is_prod_release=$is_prod_release, is_preprod_release=$is_preprod_release)"
+                    echo "WARN: Cannot Perform Release, Verify if the Config changes are specfifc to a Single Component"
                     echo ', "skip": true }' >> /home/circleci/params.json
                     exit 1
                   fi
