@@ -15,146 +15,73 @@ workflows:
             - attach_workspace:
                 at: .    
             - run:
+                name: Evaluate release type and executor tag
                 command: |
-                  # Evaluate if Pull Request
-                  if [ -z "${CIRCLE_PULL_REQUEST##*/}" ];
-                  then
+                  apt-get update && apt-get install -y yq
+
+                  if [ -z "${CIRCLE_PULL_REQUEST##*/}" ]; then
                     IS_PR=false
                   else
                     IS_PR=true
                   fi
-                  echo '{ "is_pr": '$IS_PR'' >> /home/circleci/params.json
 
-                  function evaluate_release {
-                      echo "INFO, Release ENV: $1" 
-                      if [ ${IS_PR} = true ];
-                        then
-                          echo "Active PR Detected, Evaluating the JOB Type..."
-                          is_reporting_job=`git diff --name-only origin/main...$CIRCLE_SHA1 $1/digital-prison-reporting-jobs.yml | wc -l`
-                          is_terraform_job=`git diff --name-only origin/main...$CIRCLE_SHA1 $1/digital-prison-reporting-domains.yml | wc -l`
-                          is_flyway_job=`git diff --name-only origin/main...$CIRCLE_SHA1 $1/digital-prison-reporting-transfer-component*.yml | wc -l`
-                          is_thirdparty_artifacts_job=`git diff --name-only origin/main...$CIRCLE_SHA1 $1/digital-prison-reporting-thirdparty-components.yml | wc -l`
-                          is_dataset_lambda=$(git diff --name-only origin/main...$CIRCLE_SHA1 -- "$1/digital-prison-reporting-scheduled-dataset-lambda.yml" | wc -l)
-                          is_multiphase_query_lambda=$(git diff --name-only origin/main...$CIRCLE_SHA1 -- "$1/hmpps-dpr-multiphase-query-lambda.yml" | wc -l)
-                          is_multiphase_cleanup_lambda=$(git diff --name-only origin/main...$CIRCLE_SHA1 -- "$1/hmpps-dpr-multiphase-cleanup-lambda.yml" | wc -l)
-                      elif [ ${IS_PR} = false ];
-                        then
-                          echo "NO Active PR Detected, Evaluating the JOB Type..."
-                          is_reporting_job=`git diff --name-only origin/main..HEAD~1 $1/digital-prison-reporting-jobs.yml | wc -l`
-                          is_terraform_job=`git diff --name-only origin/main..HEAD~1 $1/digital-prison-reporting-domains.yml | wc -l`
-                          is_flyway_job=`git diff --name-only origin/main..HEAD~1 $1/digital-prison-reporting-transfer-component*.yml | wc -l`
-                          is_thirdparty_artifacts_job=`git diff --name-only origin/main..HEAD~1 $1/digital-prison-reporting-thirdparty-components.yml | wc -l`
-                          is_dataset_lambda=$(git diff --name-only origin/main..HEAD~1 -- "$1/digital-prison-reporting-scheduled-dataset-lambda.yml" | wc -l)
-                          is_multiphase_query_lambda=$(git diff --name-only origin/main..HEAD~1 -- "$1/hmpps-dpr-multiphase-query-lambda.yml" | wc -l)
-                          is_multiphase_cleanup_lambda=$(git diff --name-only origin/main..HEAD~1 -- "$1/hmpps-dpr-multiphase-cleanup-lambda.yml" | wc -l)
-                      fi                 
-                  }                   
+                  echo '{ "is_pr": '$IS_PR', "projects": [' > /home/circleci/params.json
 
-                  if [ ${IS_PR} = true ];
-                    then
-                      is_prod_release=`git diff --name-only origin/main...$CIRCLE_SHA1 prod/*.yml | wc -l`
-                      is_preprod_release=`git diff --name-only origin/main...$CIRCLE_SHA1 preprod/*.yml | wc -l`
-                  elif [ ${IS_PR} = false ];
-                    then
-                      is_prod_release=`git diff --name-only origin/main..HEAD~1 prod/*.yml | wc -l`
-                      is_preprod_release=`git diff --name-only origin/main..HEAD~1 preprod/*.yml | wc -l`
-                  fi          
+                  if [ ${IS_PR} = true ]; then
+                    is_prod_release=$(git diff --name-only origin/main...$CIRCLE_SHA1 'prod/*.yml' | wc -l)
+                    is_preprod_release=$(git diff --name-only origin/main...$CIRCLE_SHA1 'preprod/*.yml' | wc -l)
+                  else
+                    is_prod_release=$(git diff --name-only origin/main..HEAD~1 'prod/*.yml' | wc -l)
+                    is_preprod_release=$(git diff --name-only origin/main..HEAD~1 'preprod/*.yml' | wc -l)
+                  fi
 
-                  echo "INFO: IS_PROD_RELEASE: $is_prod_release, IS_PREPROD_RELEASE: $is_preprod_release"
-                  if [ ${is_prod_release} = 1 ];
-                    then
-                      echo "INFO: This is a Release...."
+                  if [ "$is_preprod_release" = 1 ] && [ "$is_prod_release" = 1 ]; then
+                    echo "Error: Cannot perform Release and Preprod deployment at the same time."
+                    echo '], "skip": true }' >> /home/circleci/params.json
+                    exit 1
+
+                  elif [ "$is_preprod_release" = 0 ] && [ "$is_prod_release" = 0 ]; then
+                    echo "WARN: Cannot determine release target. No config file changed in prod/ or preprod/"
+                    echo '], "skip": true }' >> /home/circleci/params.json
+                    exit 0
+
+                  else
+                    if [ "$is_prod_release" = 1 ]; then
+                      echo "INFO: This is a Production Release"
                       is_release=true
-
-                      # Evaluate Java Image Tag, this is required to handle different Java Versions for builds
-                      # Call Function
-                      evaluate_release prod
-
-                      # Set Params 
-                      if [ ${is_reporting_job} = 1 ];
-                        then
-                          JAVA_TAG="8.0"
-                          # Pass TAG into Params File
-                          echo ', "is_release": true, "tag": "'"$JAVA_TAG"'", "project_key": "gradle" }' >> /home/circleci/params.json
-                          echo "INFO: Triggering Build using Java Image Tag: $JAVA_TAG"
-                      elif [ ${is_dataset_lambda} = 1 ];
-                        then
-                          JAVA_TAG="21.0"
-                          # Pass TAG into Params File
-                          echo ', "is_release": true, "tag": "'"$JAVA_TAG"'", "project_key": "gradle" }' >> /home/circleci/params.json
-                          echo "INFO: Triggering Build using Java Image Tag: $JAVA_TAG"     
-                      elif [ ${is_multiphase_query_lambda} = 1 ] || [ ${is_multiphase_cleanup_lambda} = 1 ];
-                        then
-                          JAVA_TAG="21.0"
-                          # Pass TAG into Params File
-                          echo ', "is_release": true, "tag": "'"$JAVA_TAG"'", "project_key": "gradle" }' >> /home/circleci/params.json
-                          echo "INFO: Triggering Build using Java Image Tag: $JAVA_TAG"     
-                      elif [ ${is_terraform_job} = 1 ];
-                        then
-                          echo "INFO: JAVA_TAG is set to 'default'"
-                          echo ', "is_release": true, "project_key": "terraform", "executor": "reporting/terraform-aws", "tag": "v1.10.0-awscliv1-1.0.2", "sync_artifacts": true }' >> /home/circleci/params.json
-                      elif [ ${is_flyway_job} = 1 ];
-                        then
-                          echo ', "is_release": true, "project_key": "flyway", "executor": "reporting/aws", "tag": "2023.12.1"}' >> /home/circleci/params.json
-                      elif [ ${is_thirdparty_artifacts_job} = 1 ];
-                        then
-                          echo ', "is_release": true, "project_key": "thirdparty_artifacts", "executor": "reporting/base", "tag": "3.10"}' >> /home/circleci/params.json
-                      else
-                        echo "INFO: JAVA_TAG is set to 'default'"
-                        echo ', "is_release": true, "project_key": "gradle" }' >> /home/circleci/params.json
-                      fi
-                  elif [ ${is_preprod_release} = 1 ];
-                    then
-                      echo "INFO: This is a Pre-Prod Deployment...."                      
+                      ENV=prod
+                    else
+                      echo "INFO: This is a Pre-Production Deployment"
                       is_release=false
+                      ENV=preprod
+                    fi
+                  fi
 
-                      # Evaluate Java Image Tag, this is required to handle different Java Versions for builds
-                      # Call Function
-                      evaluate_release preprod
+                  FIRST=true
 
-                      # Set Params
-                      if [ ${is_reporting_job} = 1 ];
-                        then
-                          JAVA_TAG="8.0"
-                          # Pass TAG into Params File
-                          echo ', "is_release": false, "tag": "'"$JAVA_TAG"'", "project_key": "gradle" }' >> /home/circleci/params.json
-                          echo "INFO: Triggering Build using Java Image Tag: $JAVA_TAG"
-                      elif [ ${is_multiphase_query_lambda} = 1 ] || [ ${is_multiphase_cleanup_lambda} = 1 ];
-                        then
-                          JAVA_TAG="21.0"
-                          # Pass TAG into Params File
-                          echo ', "is_release": false, "tag": "'"$JAVA_TAG"'", "project_key": "gradle" }' >> /home/circleci/params.json
-                          echo "INFO: Triggering Build using Java Image Tag: $JAVA_TAG"
-                      elif [ ${is_terraform_job} = 1 ];
-                        then
-                          echo "INFO: JAVA_TAG is set to 'default'"
-                          echo ', "is_release": false, "project_key": "terraform", "executor": "reporting/terraform-aws", "tag": "v1.10.0-awscliv1-1.0.2", "sync_artifacts": true }' >> /home/circleci/params.json
-                      elif [ ${is_flyway_job} = 1 ];
-                        then
-                          echo ', "is_release": false, "project_key": "flyway", "executor": "reporting/aws", "tag": "2023.12.1"}' >> /home/circleci/params.json
-                      elif [ ${is_thirdparty_artifacts_job} = 1 ];
-                        then
-                          echo ', "is_release": false, "project_key": "thirdparty_artifacts", "executor": "reporting/base", "tag": "3.10"}' >> /home/circleci/params.json                                                                    
-                      else
-                        echo "INFO: JAVA_TAG is set to 'default'"
-                        echo ', "is_release": false, "project_key": "gradle" }' >> /home/circleci/params.json
+                  for f in $(git diff --name-only origin/main...$CIRCLE_SHA1 "$ENV/*.yml"); do
+                    if [ -f "$f" ]; then
+                      EXECUTOR_NAME=$(yq e '.release.executor.name' "$f")
+                      JAVA_TAG=$(yq e '.release.executor.tag' "$f" | sed 's/^v//')
+                      PROJECT_KEY=$(yq e '.release.release_type' "$f")
+                      PROJECT_NAME=$(basename "$f" .yml)
+
+                      if [ "$EXECUTOR_NAME" != "null" ] && [ "$JAVA_TAG" != "null" ]; then
+                        echo "INFO: Found executor info for $PROJECT_NAME: $EXECUTOR_NAME:$JAVA_TAG"
+                        if [ "$FIRST" = true ]; then
+                          FIRST=false
+                        else
+                          echo ',' >> /home/circleci/params.json
+                        fi
+                        echo '{ "project": "'$PROJECT_NAME'", "executor": "'$EXECUTOR_NAME'", "tag": "'$JAVA_TAG'", "is_release": '$is_release', "project_key": "'$PROJECT_KEY'" }' >> /home/circleci/params.json
                       fi
-                  elif [ ${is_preprod_release} = 1 ] && [ ${is_prod_release} = 1 ];
-                    then
-                      echo "Error, Cannot Perform Release and Deploy to Preprod same Time.."
-                      echo ', "skip": true }' >> /home/circleci/params.json
-                  elif [ ${is_preprod_release} = 0 ] && [ ${is_prod_release} = 0 ];
-                    then
-                      echo "WARN, Cannot Perform Release, Verify if the Config changes are specfifc atleast 1 Component"
-                      echo ', "skip": true }' >> /home/circleci/params.json
-                  else 
-                      echo "Error, Cannot Perform Release, Verify if the Config changes are specfifc to a Single Component"
-                      echo ', "skip": true }' >> /home/circleci/params.json
-                      exit 1
-                  fi    
+                    fi
+                  done
+
+                  echo '] }' >> /home/circleci/params.json
                   cat /home/circleci/params.json
           requires: [clone]        
-           
+
 jobs:
   clone:
     docker:
