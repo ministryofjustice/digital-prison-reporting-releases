@@ -26,9 +26,11 @@ parameters:
     type: boolean
     default: false  
   skip:
+    description: if set to true will skip the workflow
     type: boolean
     default: false
   sync_artifacts:
+    description: Sync Artifacts to S3, Only Valid for Service Bundle
     type: boolean
     default: false    
   project_key:
@@ -37,8 +39,8 @@ parameters:
 
 workflows:
   release:
-    when:
-      not: << pipeline.parameters.skip >>
+    when: # Skip if the Set to True
+      not: <<pipeline.parameters.skip>>
     jobs:
       - build_type
       - reporting/generic_release:
@@ -50,7 +52,7 @@ workflows:
           skip_flyway_validate: true
           aws_sync_artifacts: << pipeline.parameters.sync_artifacts >>
           project_key: << pipeline.parameters.project_key >>
-          executor:
+          executor: 
             name: << pipeline.parameters.executor >>
             tag: << pipeline.parameters.tag >>
             class: << pipeline.parameters.resource_class >>
@@ -75,6 +77,9 @@ jobs:
       - run: 
           name: Build Type
           command: |
+            echo "INFO: Project Key, << pipeline.parameters.project_key >>"          
+            echo "INFO: Downstream Executor, << pipeline.parameters.executor >>"
+            echo "INFO: Downstream Image TAG, << pipeline.parameters.tag >>"
             echo "INFO: Project Key: << pipeline.parameters.project_key >>"          
             echo "INFO: Executor: << pipeline.parameters.executor >>"
-            echo "INFO: Java Tag: << pipeline.parameters.tag >>"
+            echo "INFO: Executor Tag: << pipeline.parameters.tag >>"
