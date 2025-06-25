@@ -25,7 +25,7 @@ workflows:
                   echo '{ "is_pr": '$IS_PR'' > /home/circleci/params.json
 
                   function evaluate_release {
-                    set +x
+                    set -x
                     echo "INFO, Release ENV: $1"
 
                     if [ ${IS_PR} = true ]; then
@@ -50,7 +50,7 @@ workflows:
                       echo "ERROR: $project_file not found"
                       echo ', "skip": true }' >> /home/circleci/params.json
                     fi
-                    set -x
+                    set +x
                   }
 
                   if [ ${IS_PR} = true ]; then
