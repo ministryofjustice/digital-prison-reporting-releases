@@ -24,6 +24,8 @@ workflows:
                   fi
                   echo '{ "is_pr": '$IS_PR'' > /home/circleci/params.json
 
+
+
                   function evaluate_release {
                     set -x
                     echo "INFO, Release ENV: $1"
@@ -36,9 +38,17 @@ workflows:
 
                     release_file=$(git diff --name-only "$git_range" | grep -E '^'"$1"'/.*\.yml' | head -n1)
                     changed_project=$(basename "$release_file" .yml)
-                    echo "INFO: Detected changed project: $changed_project"
+                    
+                    if [ -z "$changed_project" ]; then
+                      echo "ERROR: Could not infer project from changed files in $1/"
+                      echo ', "skip": true }' >> /home/circleci/params.json
+                      return 0
+                    fi
 
-                    project_file="$changed_project/project.yml"
+                    echo "INFO: Release file detected: $release_file"
+                    echo "INFO: Inferred project key: $changed_project"
+
+                    project_file="$1/$changed_project.yml"
                     if [ -f "$project_file" ]; then
                       EXECUTOR=$(yq e '.executor.name' "$project_file")
                       TAG=$(yq e '.executor.tag' "$project_file")
@@ -48,7 +58,7 @@ workflows:
 
                       echo ', "is_release": '"$is_release"', "project_key": "'"$PROJECT_KEY"'", "executor": "'"$EXECUTOR"'", "tag": "'"$TAG"'" }' >> /home/circleci/params.json
                     else
-                      echo "ERROR: $project_file not found"
+                      echo "ERROR: Expected release file $project_file not found"
                       echo ', "skip": true }' >> /home/circleci/params.json
                     fi
                     set +x
