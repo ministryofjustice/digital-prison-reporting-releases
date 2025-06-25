@@ -50,8 +50,8 @@ workflows:
 
                     project_file="$1/$changed_project.yml"
                     if [ -f "$project_file" ]; then
-                      EXECUTOR=$(yq e '.executor.name' "$project_file")
-                      TAG=$(yq e '.executor.tag' "$project_file")
+                      EXECUTOR=$(yq e '.release.executor.name' "$project_file")
+                      TAG=$(yq e '.release.executor.tag' "$project_file")
                       PROJECT_KEY=$(yq e '.release.release_type' "$project_file")
 
                       echo "INFO: Using executor: $EXECUTOR, tag: $TAG, project_key: $PROJECT_KEY"
