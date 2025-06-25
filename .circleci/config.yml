@@ -43,6 +43,14 @@ workflows:
                   echo "INFO: IS_PROD_RELEASE = $is_prod_release"
                   echo "INFO: IS_PREPROD_RELEASE = $is_preprod_release"
 
+                  # 🚨 NEW: Fail early if multiple release files are changed
+                  if [ "$is_prod_release" -gt 1 ] || [ "$is_preprod_release" -gt 1 ]; then
+                    echo "ERROR: Multiple release job files detected (is_prod_release=$is_prod_release, is_preprod_release=$is_preprod_release)"
+                    echo ', "skip": true }' >> /home/circleci/params.json
+                    exit 1
+                  fi
+
+                  # Continue with environment detection
                   if [ "$is_prod_release" = 1 ]; then
                     is_release=true
                     ENV_DIR=prod
@@ -56,7 +64,7 @@ workflows:
                   fi
                   echo "INFO: ENV_DIR = $ENV_DIR"
 
-                  # Detect changed components
+                  # Detect changed job files
                   changed_files=$(git diff --name-only $GIT_DIFF)
                   echo "INFO: Changed files:\n$changed_files"
 
@@ -87,7 +95,7 @@ workflows:
                     EXECUTOR_NAME=${EXECUTOR_NAME:-"reporting/java"}
                     JAVA_TAG=${JAVA_TAG:-"11.0"}
                     PROJECT_KEY=${PROJECT_KEY:-"gradle"}
-                    
+
                     echo "INFO: Executor: $EXECUTOR_NAME"
                     echo "INFO: Java Tag: $JAVA_TAG"
                     echo "INFO: Project Key: $PROJECT_KEY"
@@ -101,7 +109,7 @@ workflows:
 
                   echo "INFO: Final params.json content:"
                   cat /home/circleci/params.json
-          requires: [clone]        
+          requires: [clone]
 
 jobs:
   clone:
