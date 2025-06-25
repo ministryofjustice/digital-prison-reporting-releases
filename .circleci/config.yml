@@ -34,7 +34,8 @@ workflows:
                       git_range="origin/main..HEAD~1"
                     fi
 
-                    changed_project=$(git diff --name-only $git_range | grep -oE '^[^/]+(?=/)' | sort -u | head -n1)
+                    release_file=$(git diff --name-only "$git_range" | grep -E '^'"$1"'/.*\.yml' | head -n1)
+                    changed_project=$(basename "$release_file" .yml)
                     echo "INFO: Detected changed project: $changed_project"
 
                     project_file="$changed_project/project.yml"
