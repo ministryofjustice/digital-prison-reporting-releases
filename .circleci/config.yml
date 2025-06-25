@@ -15,102 +15,74 @@ workflows:
             - attach_workspace:
                 at: .    
             - run:
-                name: Evaluate release type and executor tag
+                name: Generate params.json from project.yml
                 command: |
-                  apt-get update && apt-get install -y yq
-
-                  # Detect PR context
                   if [ -z "${CIRCLE_PULL_REQUEST##*/}" ]; then
                     IS_PR=false
                   else
                     IS_PR=true
                   fi
-                  echo "INFO: IS_PR = $IS_PR"
-                  echo '{ "is_pr": '$IS_PR'' >> /home/circleci/params.json
+                  echo '{ "is_pr": '$IS_PR'' > /home/circleci/params.json
 
-                  # Set diff range based on PR or non-PR
-                  if [ "$IS_PR" = true ]; then
-                    GIT_DIFF="origin/main...$CIRCLE_SHA1"
+                  function evaluate_release {
+                    echo "INFO, Release ENV: $1"
+
+                    if [ ${IS_PR} = true ]; then
+                      git_range="origin/main...$CIRCLE_SHA1"
+                    else
+                      git_range="origin/main..HEAD~1"
+                    fi
+
+                    changed_project=$(git diff --name-only $git_range | grep -oE '^[^/]+(?=/)' | sort -u | head -n1)
+                    echo "INFO: Detected changed project: $changed_project"
+
+                    project_file="$changed_project/project.yml"
+                    if [ -f "$project_file" ]; then
+                      EXECUTOR=$(yq e '.executor.name' "$project_file")
+                      TAG=$(yq e '.executor.tag' "$project_file")
+                      PROJECT_KEY=$(yq e '.release.release_type' "$project_file")
+
+                      echo "INFO: Using executor: $EXECUTOR, tag: $TAG, project_key: $PROJECT_KEY"
+
+                      echo ', "is_release": '"$is_release"', "project_key": "'"$PROJECT_KEY"'", "executor": "'"$EXECUTOR"'", "tag": "'"$TAG"'" }' >> /home/circleci/params.json
+                    else
+                      echo "ERROR: $project_file not found"
+                      echo ', "skip": true }' >> /home/circleci/params.json
+                    fi
+                  }
+
+                  if [ ${IS_PR} = true ]; then
+                    is_prod_release=$(git diff --name-only origin/main...$CIRCLE_SHA1 prod/*.yml | wc -l)
+                    is_preprod_release=$(git diff --name-only origin/main...$CIRCLE_SHA1 preprod/*.yml | wc -l)
                   else
-                    GIT_DIFF="origin/main..HEAD~1"
+                    is_prod_release=$(git diff --name-only origin/main..HEAD~1 prod/*.yml | wc -l)
+                    is_preprod_release=$(git diff --name-only origin/main..HEAD~1 preprod/*.yml | wc -l)
                   fi
-                  echo "INFO: GIT_DIFF Range = $GIT_DIFF"
 
-                  # Detect environment
-                  is_prod_release=$(git diff --name-only $GIT_DIFF 'prod/*.yml' | wc -l)
-                  is_preprod_release=$(git diff --name-only $GIT_DIFF 'preprod/*.yml' | wc -l)
-                  
-                  echo "INFO: IS_PROD_RELEASE = $is_prod_release"
-                  echo "INFO: IS_PREPROD_RELEASE = $is_preprod_release"
+                  echo "INFO: IS_PROD_RELEASE: $is_prod_release, IS_PREPROD_RELEASE: $is_preprod_release"
 
-                  # 🚨 NEW: Fail early if multiple release files are changed
-                  if [ "$is_prod_release" -gt 1 ] || [ "$is_preprod_release" -gt 1 ]; then
-                    echo "ERROR: Multiple release job files detected (is_prod_release=$is_prod_release, is_preprod_release=$is_preprod_release)"
-                    echo "WARN: Cannot Perform Release, Verify if the Config changes are specfifc to a Single Component"
+                  if [ ${is_prod_release} = 1 ]; then
+                    echo "INFO: This is a Release...."
+                    is_release=true
+                    evaluate_release prod
+                  elif [ ${is_preprod_release} = 1 ]; then
+                    echo "INFO: This is a Pre-Prod Deployment...."
+                    is_release=false
+                    evaluate_release preprod
+                  elif [ ${is_preprod_release} = 1 ] && [ ${is_prod_release} = 1 ]; then
+                    echo "ERROR: Cannot perform Release and Deploy to Preprod at same time"
+                    echo ', "skip": true }' >> /home/circleci/params.json
+                  elif [ ${is_preprod_release} = 0 ] && [ ${is_prod_release} = 0 ]; then
+                    echo "WARN: No release detected"
+                    echo ', "skip": true }' >> /home/circleci/params.json
+                  else 
+                    echo "ERROR: Unknown state"
                     echo ', "skip": true }' >> /home/circleci/params.json
                     exit 1
                   fi
 
-                  # Continue with environment detection
-                  if [ "$is_prod_release" = 1 ]; then
-                    is_release=true
-                    ENV_DIR=prod
-                  elif [ "$is_preprod_release" = 1 ]; then
-                    is_release=false
-                    ENV_DIR=preprod
-                  else
-                    echo "WARN: No release type detected."
-                    echo ', "skip": true }' >> /home/circleci/params.json
-                    exit 0
-                  fi
-                  echo "INFO: ENV_DIR = $ENV_DIR"
-
-                  # Detect changed job files
-                  changed_files=$(git diff --name-only $GIT_DIFF)
-                  echo "INFO: Changed files:\n$changed_files"
-
-                  matched_jobs=$(echo "$changed_files" | grep -E "$ENV_DIR/digital-prison-reporting-.*\.yml" | xargs -n1 basename || true)
-
-                  num_matched=$(echo "$matched_jobs" | wc -l)
-                  if [ "$num_matched" -gt 1 ]; then
-                    echo "ERROR: Multiple job components detected: $matched_jobs"
-                    echo ', "skip": true }' >> /home/circleci/params.json
-                    exit 0
-                  elif [ "$num_matched" -eq 0 ]; then
-                    echo "ERROR: No job component matched."
-                    echo ', "skip": true }' >> /home/circleci/params.json
-                    exit 0
-                  fi
-
-                  matched_file=$(echo "$matched_jobs" | head -n1)
-                  JOB_PATH="$ENV_DIR/$matched_file"
-
-                  echo "INFO: Detected job: $matched_file"
-                  echo "INFO: Using job metadata file: $JOB_PATH"
-
-                  if [ -f "$JOB_PATH" ]; then
-                    EXECUTOR_NAME=$(yq e ".release.executor.name" "$JOB_PATH")
-                    JAVA_TAG=$(yq e ".release.executor.tag" "$JOB_PATH" | sed 's/^v//')
-                    PROJECT_KEY=$(yq e ".release.release_type" "$JOB_PATH")
-
-                    EXECUTOR_NAME=${EXECUTOR_NAME:-"reporting/java"}
-                    JAVA_TAG=${JAVA_TAG:-"11.0"}
-                    PROJECT_KEY=${PROJECT_KEY:-"gradle"}
-
-                    echo "INFO: Executor: $EXECUTOR_NAME"
-                    echo "INFO: Java Tag: $JAVA_TAG"
-                    echo "INFO: Project Key: $PROJECT_KEY"
-                  else
-                    echo "ERROR: jobs.yml file not found at $JOB_PATH"
-                    echo ', "skip": true }' >> /home/circleci/params.json
-                    exit 0
-                  fi
-
-                  echo ', "is_release": '$is_release', "executor": "'$EXECUTOR_NAME'", "tag": "'$JAVA_TAG'", "project_key": "'$PROJECT_KEY'" }' >> /home/circleci/params.json
-
-                  echo "INFO: Final params.json content:"
                   cat /home/circleci/params.json
-          requires: [clone]
+          requires: [clone]        
 
 jobs:
   clone:
@@ -118,6 +90,10 @@ jobs:
       - image: cimg/base:stable
     steps:
       - checkout
+      - run:
+          name: Install yq
+          command: |
+            sudo apt-get update && sudo apt-get install -y yq
       - persist_to_workspace:
           root: .
           paths:
