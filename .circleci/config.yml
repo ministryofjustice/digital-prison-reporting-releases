@@ -17,15 +17,13 @@ workflows:
             - run:
                 name: Evaluate release type and executor tag
                 command: |
-                  apt-get update && apt-get install -y yq
+                  apt-get update && apt-get install -y yq jq
 
                   if [ -z "${CIRCLE_PULL_REQUEST##*/}" ]; then
                     IS_PR=false
                   else
                     IS_PR=true
                   fi
-
-                  echo '{ "is_pr": '$IS_PR', "projects": [' > /home/circleci/params.json
 
                   if [ ${IS_PR} = true ]; then
                     is_prod_release=$(git diff --name-only origin/main...$CIRCLE_SHA1 'prod/*.yml' | wc -l)
@@ -37,12 +35,12 @@ workflows:
 
                   if [ "$is_preprod_release" = 1 ] && [ "$is_prod_release" = 1 ]; then
                     echo "Error: Cannot perform Release and Preprod deployment at the same time."
-                    echo '], "skip": true }' >> /home/circleci/params.json
+                    echo '{ "skip": true }' > /home/circleci/params.json
                     exit 1
 
                   elif [ "$is_preprod_release" = 0 ] && [ "$is_prod_release" = 0 ]; then
                     echo "WARN: Cannot determine release target. No config file changed in prod/ or preprod/"
-                    echo '], "skip": true }' >> /home/circleci/params.json
+                    echo '{ "skip": true }' > /home/circleci/params.json
                     exit 0
 
                   else
@@ -57,8 +55,7 @@ workflows:
                     fi
                   fi
 
-                  FIRST=true
-
+                  # Loop through changed files and extract first valid config
                   for f in $(git diff --name-only origin/main...$CIRCLE_SHA1 "$ENV/*.yml"); do
                     if [ -f "$f" ]; then
                       EXECUTOR_NAME=$(yq e '.release.executor.name' "$f")
@@ -66,19 +63,31 @@ workflows:
                       PROJECT_KEY=$(yq e '.release.release_type' "$f")
                       PROJECT_NAME=$(basename "$f" .yml)
 
-                      if [ "$EXECUTOR_NAME" != "null" ] && [ "$JAVA_TAG" != "null" ]; then
-                        echo "INFO: Found executor info for $PROJECT_NAME: $EXECUTOR_NAME:$JAVA_TAG"
-                        if [ "$FIRST" = true ]; then
-                          FIRST=false
-                        else
-                          echo ',' >> /home/circleci/params.json
-                        fi
-                        echo '{ "project": "'$PROJECT_NAME'", "executor": "'$EXECUTOR_NAME'", "tag": "'$JAVA_TAG'", "is_release": '$is_release', "project_key": "'$PROJECT_KEY'" }' >> /home/circleci/params.json
+                      if [ "$EXECUTOR_NAME" != "null" ] && [ "$JAVA_TAG" != "null" ] && [ "$PROJECT_KEY" != "null" ]; then
+                        echo "INFO: Using $PROJECT_NAME with executor $EXECUTOR_NAME:$JAVA_TAG"
+
+                        cat <<EOF > /home/circleci/params.json
+{
+  "is_pr": $IS_PR,
+  "project": "$PROJECT_NAME",
+  "executor": "$EXECUTOR_NAME",
+  "tag": "$JAVA_TAG",
+  "is_release": $is_release,
+  "project_key": "$PROJECT_KEY"
+}
+EOF
+                        break
                       fi
                     fi
                   done
 
-                  echo '] }' >> /home/circleci/params.json
+                  # Fallback if nothing matched
+                  if [ ! -f /home/circleci/params.json ]; then
+                    echo "WARN: No valid project config found, skipping pipeline."
+                    echo '{ "skip": true }' > /home/circleci/params.json
+                  fi
+
+                  echo "Final params.json:"
                   cat /home/circleci/params.json
           requires: [clone]        
 
