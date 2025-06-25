@@ -66,16 +66,22 @@ workflows:
                       if [ "$EXECUTOR_NAME" != "null" ] && [ "$JAVA_TAG" != "null" ] && [ "$PROJECT_KEY" != "null" ]; then
                         echo "INFO: Using $PROJECT_NAME with executor $EXECUTOR_NAME:$JAVA_TAG"
 
-                        cat <<EOF > /home/circleci/params.json
-{
-  "is_pr": $IS_PR,
-  "project": "$PROJECT_NAME",
-  "executor": "$EXECUTOR_NAME",
-  "tag": "$JAVA_TAG",
-  "is_release": $is_release,
-  "project_key": "$PROJECT_KEY"
-}
-EOF
+                        jq -n \
+                          --arg is_pr "$IS_PR" \
+                          --arg project "$PROJECT_NAME" \
+                          --arg executor "$EXECUTOR_NAME" \
+                          --arg tag "$JAVA_TAG" \
+                          --argjson is_release "$is_release" \
+                          --arg project_key "$PROJECT_KEY" \
+                          '{
+                            is_pr: ($is_pr == "true"),
+                            project: $project,
+                            executor: $executor,
+                            tag: $tag,
+                            is_release: $is_release,
+                            project_key: $project_key
+                          }' > /home/circleci/params.json
+
                         break
                       fi
                     fi
