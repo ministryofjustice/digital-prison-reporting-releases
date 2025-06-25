@@ -80,3 +80,6 @@ jobs:
             echo "INFO: Project Key, << pipeline.parameters.project_key >>"          
             echo "INFO: Downstream Executor, << pipeline.parameters.executor >>"
             echo "INFO: Downstream Image TAG, << pipeline.parameters.tag >>"
+            echo "INFO: Project Key: << pipeline.parameters.project_key >>"          
+            echo "INFO: Executor: << pipeline.parameters.executor >>"
+            echo "INFO: Executor Tag: << pipeline.parameters.tag >>"

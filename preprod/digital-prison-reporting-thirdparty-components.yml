@@ -3,6 +3,9 @@ release:
   release_type: thirdparty_artifacts
   release_category: backend
   tag: v0.0.2
+  executor:
+    name: reporting/base  
+    tag: 3.10 
   extra_args:
     jars_path: "jars"
     zips_path: "zips"
