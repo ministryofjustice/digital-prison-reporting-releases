@@ -83,7 +83,7 @@ workflows:
                   fi
 
                   matched_file=$(echo "$matched_jobs" | head -n1)
-                  JOB_PATH="$ENV_DIR/jobs.yml"
+                  JOB_PATH="$ENV_DIR/$matched_file"
 
                   echo "INFO: Detected job: $matched_file"
                   echo "INFO: Using job metadata file: $JOB_PATH"
