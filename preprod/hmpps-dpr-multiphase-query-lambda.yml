@@ -2,12 +2,12 @@ release:
   project: hmpps-dpr-multiphase-query-lambda
   release_type: gradle
   release_category: backend
-  tag: v0.0.4
+  tag: v0.0.6
   executor:
     name: reporting/java
     tag: 21.0
   extra_args:
-    refresh_lambda: false
+    refresh_lambda: true
     refresh_function: dpr-multiphase-query-function
   s3_sync_args:
     app_dir: ./project
