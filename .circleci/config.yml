@@ -53,10 +53,11 @@ workflows:
                       EXECUTOR=$(yq e '.release.executor.name' "$project_file")
                       TAG=$(yq e '.release.executor.tag' "$project_file")
                       PROJECT_KEY=$(yq e '.release.release_type' "$project_file")
+                      SYNC_FROM_YAML=$(yq e '.s3_sync_args.sync_artifacts // false' "$project_file" 2>/dev/null)
 
                       echo "INFO: Using executor: $EXECUTOR, tag: $TAG, project_key: $PROJECT_KEY"
 
-                      echo ', "is_release": '"$is_release"', "project_key": "'"$PROJECT_KEY"'", "executor": "'"$EXECUTOR"'", "tag": "'"$TAG"'" }' >> /home/circleci/params.json
+                      echo ', "is_release": '"$is_release"', "project_key": "'"$PROJECT_KEY"'", "executor": "'"$EXECUTOR"'", "tag": "'"$TAG"'", "sync_artifacts": '"$SYNC_ARTIFACTS"' }' >> /home/circleci/params.json
                     else
                       echo "ERROR: Expected release file $project_file not found"
                       echo ', "skip": true }' >> /home/circleci/params.json
