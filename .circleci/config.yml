@@ -6,14 +6,14 @@ orbs:
 
 workflows:
   setup:
-    jobs: 
-      - clone    
+    jobs:
+      - clone
       - continuation/continue:
           configuration_path: ".circleci/main.yml"
           parameters: /home/circleci/params.json
           pre-steps:
             - attach_workspace:
-                at: .    
+                at: .
             - run:
                 name: Generate params.json from project.yml
                 command: |
@@ -22,49 +22,70 @@ workflows:
                   else
                     IS_PR=true
                   fi
-                  echo '{ "is_pr": '$IS_PR'' > /home/circleci/params.json
-
-
 
                   function evaluate_release {
-                    set -x
-                    echo "INFO, Release ENV: $1"
+                    local ENVIRONMENT="$1"
+                    echo "INFO: Evaluating release for environment: $ENVIRONMENT"
 
-                    if [ ${IS_PR} = true ]; then
+                    if [ "$IS_PR" = true ]; then
                       git_range="origin/main...$CIRCLE_SHA1"
                     else
                       git_range="origin/main..HEAD~1"
                     fi
 
-                    release_file=$(git diff --name-only "$git_range" | grep -E '^'"$1"'/.*\.yml' | head -n1)
+                    release_file=$(git diff --name-only "$git_range" | grep -E '^'"$ENVIRONMENT"'/.*\.yml' | head -n1)
                     changed_project=$(basename "$release_file" .yml)
-                    
+
                     if [ -z "$changed_project" ]; then
-                      echo "ERROR: Could not infer project from changed files in $1/"
-                      echo ', "skip": true }' >> /home/circleci/params.json
-                      return 0
+                      echo "ERROR: Could not infer project from changes in $ENVIRONMENT/"
+                      jq -n --argjson is_pr "$IS_PR" '{"is_pr": $is_pr, "skip": true}' > /home/circleci/params.json
+                      return 1
                     fi
 
-                    echo "INFO: Release file detected: $release_file"
-                    echo "INFO: Inferred project key: $changed_project"
+                    echo "Detected release file: $release_file"
+                    echo "Inferred project key: $changed_project"
 
-                    project_file="$1/$changed_project.yml"
-                    if [ -f "$project_file" ]; then
-                      EXECUTOR=$(yq e '.release.executor.name' "$project_file")
-                      TAG=$(yq e '.release.executor.tag' "$project_file")
-                      PROJECT_KEY=$(yq e '.release.release_type' "$project_file")
+                    project_file="$ENVIRONMENT/$changed_project.yml"
+                    if [ ! -f "$project_file" ]; then
+                      echo "ERROR: Expected file $project_file not found"
+                      jq -n --argjson is_pr "$IS_PR" '{"is_pr": $is_pr, "skip": true}' > /home/circleci/params.json
+                      return 1
+                    fi
 
-                      echo "INFO: Using executor: $EXECUTOR, tag: $TAG, project_key: $PROJECT_KEY"
+                    EXECUTOR=$(yq e '.release.executor.name' "$project_file")
+                    TAG=$(yq e '.release.executor.tag' "$project_file")
+                    PROJECT_KEY=$(yq e '.release.release_type' "$project_file")
+                    SYNC_FROM_YAML=$(yq e '.s3_sync_args.sync_artifacts // false' "$project_file")
 
-                      echo ', "is_release": '"$is_release"', "project_key": "'"$PROJECT_KEY"'", "executor": "'"$EXECUTOR"'", "tag": "'"$TAG"'" }' >> /home/circleci/params.json
+                    if [[ "$PROJECT_KEY" == "terraform" ]]; then
+                      SYNC_ARTIFACTS=true
                     else
-                      echo "ERROR: Expected release file $project_file not found"
-                      echo ', "skip": true }' >> /home/circleci/params.json
+                      SYNC_ARTIFACTS="$SYNC_FROM_YAML"
                     fi
-                    set +x
+
+                    echo "Executor: $EXECUTOR"
+                    echo "Tag: $TAG"
+                    echo "Project: $PROJECT_KEY"
+                    echo "Sync Artifacts: $SYNC_ARTIFACTS"
+
+                    jq -n \
+                      --argjson is_pr "$IS_PR" \
+                      --argjson is_release "$2" \
+                      --arg project_key "$PROJECT_KEY" \
+                      --arg executor "$EXECUTOR" \
+                      --arg tag "$TAG" \
+                      --argjson sync_artifacts "$SYNC_ARTIFACTS" \
+                      '{
+                        is_pr: $is_pr,
+                        is_release: $is_release,
+                        project_key: $project_key,
+                        executor: $executor,
+                        tag: $tag,
+                        sync_artifacts: $sync_artifacts
+                      }' > /home/circleci/params.json
                   }
 
-                  if [ ${IS_PR} = true ]; then
+                  if [ "$IS_PR" = true ]; then
                     is_prod_release=$(git diff --name-only origin/main...$CIRCLE_SHA1 prod/*.yml | wc -l)
                     is_preprod_release=$(git diff --name-only origin/main...$CIRCLE_SHA1 preprod/*.yml | wc -l)
                   else
@@ -72,30 +93,24 @@ workflows:
                     is_preprod_release=$(git diff --name-only origin/main..HEAD~1 preprod/*.yml | wc -l)
                   fi
 
-                  echo "INFO: IS_PROD_RELEASE: $is_prod_release, IS_PREPROD_RELEASE: $is_preprod_release"
+                  echo "is_prod_release=$is_prod_release, is_preprod_release=$is_preprod_release"
 
-                  if [ ${is_prod_release} = 1 ]; then
-                    echo "INFO: This is a Release...."
-                    is_release=true
-                    evaluate_release prod
-                  elif [ ${is_preprod_release} = 1 ]; then
-                    echo "INFO: This is a Pre-Prod Deployment...."
-                    is_release=false
-                    evaluate_release preprod
-                  elif [ ${is_preprod_release} = 1 ] && [ ${is_prod_release} = 1 ]; then
-                    echo "ERROR: Cannot perform Release and Deploy to Preprod at same time"
-                    echo ', "skip": true }' >> /home/circleci/params.json
-                  elif [ ${is_preprod_release} = 0 ] && [ ${is_prod_release} = 0 ]; then
-                    echo "WARN: No release detected"
-                    echo ', "skip": true }' >> /home/circleci/params.json
-                  else 
-                    echo "ERROR: Unknown state"
-                    echo ', "skip": true }' >> /home/circleci/params.json
+                  if [ "$is_prod_release" = 1 ] && [ "$is_preprod_release" = 1 ]; then
+                    echo "ERROR: Both prod and preprod changes detected. Cannot proceed."
+                    jq -n --argjson is_pr "$IS_PR" '{"is_pr": $is_pr, "skip": true}' > /home/circleci/params.json
                     exit 1
+                  elif [ "$is_prod_release" = 1 ]; then
+                    evaluate_release prod true
+                  elif [ "$is_preprod_release" = 1 ]; then
+                    evaluate_release preprod false
+                  else
+                    echo "No release changes detected."
+                    jq -n --argjson is_pr "$IS_PR" '{"is_pr": $is_pr, "skip": true}' > /home/circleci/params.json
                   fi
 
+                  echo "Generated params.json:"
                   cat /home/circleci/params.json
-          requires: [clone]        
+          requires: [clone]
 
 jobs:
   clone:
@@ -104,15 +119,17 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Install yq
+          name: Install yq and jq
           command: |
             YQ_VERSION=v4.35.2
             mkdir -p ~/bin
             curl -L "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64" -o ~/bin/yq
             chmod +x ~/bin/yq
+            sudo apt-get update && sudo apt-get install -y jq
             echo 'export PATH=~/bin:$PATH' >> "$BASH_ENV"
             source "$BASH_ENV"
             yq --version
+            jq --version
       - persist_to_workspace:
           root: .
           paths:
