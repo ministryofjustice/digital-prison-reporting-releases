@@ -55,9 +55,24 @@ workflows:
                       PROJECT_KEY=$(yq e '.release.release_type' "$project_file")
                       SYNC_FROM_YAML=$(yq e '.s3_sync_args.sync_artifacts // false' "$project_file" 2>/dev/null)
 
-                      echo "INFO: Using executor: $EXECUTOR, tag: $TAG, project_key: $PROJECT_KEY"
+                       if [[ "$PROJECT_KEY" == "terraform" ]]; then
+                          SYNC_ARTIFACTS=true
+                        else
+                          SYNC_ARTIFACTS="$SYNC_FROM_YAML"
+                        fi
 
-                      echo ', "is_release": '"$is_release"', "project_key": "'"$PROJECT_KEY"'", "executor": "'"$EXECUTOR"'", "tag": "'"$TAG"'", "sync_artifacts": '"$SYNC_ARTIFACTS"' }' >> /home/circleci/params.json
+                        echo "INFO: Using executor: $EXECUTOR, tag: $TAG, project_key: $PROJECT_KEY, sync_artifacts: $SYNC_ARTIFACTS"
+
+                        cat <<EOF > /home/circleci/params.json
+                  {
+                    "is_pr": $IS_PR,
+                    "is_release": $is_release,
+                    "project_key": "$PROJECT_KEY",
+                    "executor": "$EXECUTOR",
+                    "tag": "$TAG",
+                    "sync_artifacts": $SYNC_ARTIFACTS
+                  }
+                  EOF
                     else
                       echo "ERROR: Expected release file $project_file not found"
                       echo ', "skip": true }' >> /home/circleci/params.json
