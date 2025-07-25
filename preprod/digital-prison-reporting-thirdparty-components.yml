@@ -2,7 +2,7 @@ release:
   project: digital-prison-reporting-thirdparty-components
   release_type: thirdparty_artifacts
   release_category: backend
-  tag: v0.0.10
+  tag: v0.0.11
   executor:
     name: reporting/base  
     tag: 3.10 
