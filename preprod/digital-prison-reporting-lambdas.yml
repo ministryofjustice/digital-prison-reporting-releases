@@ -2,8 +2,11 @@ release:
   project: digital-prison-reporting-lambdas
   release_type: gradle
   release_category: backend
-  tag: v0.0.23
-  bump: 2
+  tag: v0.0.24
+  bump: 1
+  executor:
+    name: reporting/terraform-aws
+    tag: v1.10.0-awscliv1-1.0.2
   extra_args:
     refresh_lambda: true
     refresh_function: dpr-pipeline-notification-function
