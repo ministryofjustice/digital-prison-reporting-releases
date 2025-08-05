@@ -6,7 +6,7 @@ release:
     name: reporting/terraform-aws
     tag: v1.10.0-awscliv1-1.0.2
   tag: v0.0.295
-  bump: 1
+  bump: 3
   s3_sync_args:
     sync_artifacts: true
     app_dir: ./project
