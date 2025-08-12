@@ -73,6 +73,7 @@ jobs:
   build_type:
     docker:
       - image: cimg/base:stable
+    resource_class: large
     steps:
       - run: 
           name: Build Type
