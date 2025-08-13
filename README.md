@@ -28,6 +28,17 @@ It enables dynamic and flexible promotion of services, lambdas, domains, and oth
 ```
 
 ---
+## Release History
+
+<!-- RELEASE_HISTORY_START -->
+
+| Version | Date       | Description |
+|---------|------------|-------------|
+| –       | –          | No releases yet |
+
+<!-- RELEASE_HISTORY_END -->
+
+> This section is automatically updated by the release pipeline. Do not edit manually.
 
 ---
 
