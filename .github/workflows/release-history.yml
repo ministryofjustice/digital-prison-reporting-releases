@@ -34,27 +34,28 @@ jobs:
           ref: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && github.event.repository.default_branch || github.event.pull_request.head.ref || github.ref }}
           fetch-depth: 0
           fetch-tags: true
-      - name: Fetch all tags (force)
-        shell: bash
-        run: |
-          git fetch --tags --force --prune
-      - name: List detected tags
-        shell: bash
-        run: |
-          echo "Tags seen by CI:"
-          git tag --sort=-creatordate | nl | sed -n '1,120p'
 
-      - name: Build release history body (ASCII only)
+      - name: Fetch all tags (force) & list detected tags
         shell: bash
         run: |
           set -euo pipefail
-          TAGS=$(git tag --sort=-creatordate | head -n 20)
+          git fetch --tags --force --prune
+          echo "Tags seen by CI:"
+          git tag --sort=-creatordate | nl | sed -n '1,200p' || true
+
+      # -------- Build & inject Release History (from git tags) --------
+      - name: Build release history body (tags only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAGS=$(git tag --sort=-creatordate | head -n 100)
 
           if [ -z "$TAGS" ]; then
             TABLE_ROWS="| - | - | No releases yet |"
           else
             TABLE_ROWS=""
             while IFS= read -r tag; do
+              [ -z "$tag" ] && continue
               date=$(git log -1 --format=%as "$tag" 2>/dev/null || echo "-")
               subject=$(git for-each-ref "refs/tags/$tag" --format='%(subject)' 2>/dev/null || true)
               if [ -z "$subject" ]; then
@@ -70,14 +71,21 @@ jobs:
             printf "%b\n" "$TABLE_ROWS"
           } > /tmp/release_body.md
 
-      - name: Verify markers & preview
+      - name: Ensure Release History markers exist
         shell: bash
         run: |
           set -euo pipefail
-          grep -n '<!-- RELEASE_HISTORY_START -->' README.md
-          grep -n '<!-- RELEASE_HISTORY_END -->' README.md
-          echo "Preview:"
-          head -n 10 /tmp/release_body.md || true
+          if ! grep -q '<!-- RELEASE_HISTORY_START -->' README.md; then
+            {
+              echo
+              echo '## Release History'
+              echo
+              echo '<!-- RELEASE_HISTORY_START -->'
+              echo '<!-- RELEASE_HISTORY_END -->'
+              echo
+              echo '> This section is automatically updated by the release pipeline. Do not edit manually.'
+            } >> README.md
+          fi
 
       - name: Inject Release History into README.md
         shell: bash
@@ -91,15 +99,86 @@ jobs:
           ' README.md > README.tmp
           if ! cmp -s README.tmp README.md; then
             mv README.tmp README.md
-            echo "README updated."
+            echo "README (Release History) updated."
           else
-            echo "No changes to README."
+            echo "No changes to Release History section."
+          fi
+
+      # -------- Build & inject GitHub Releases (from Releases API) --------
+      - name: Build GitHub releases table (body only)
+        shell: bash
+        env:
+          GH_API: ${{ github.api_url }}
+          REPO: ${{ github.repository }}
+          TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          if ! command -v jq >/dev/null 2>&1; then
+            sudo apt-get update -y
+            sudo apt-get install -y jq
+          fi
+
+          # Get up to 20 published releases (exclude drafts and prereleases)
+          RESP=$(curl -fsSL -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.github+json" \
+            "$GH_API/repos/$REPO/releases?per_page=20")
+          COUNT=$(echo "$RESP" | jq 'map(select(.draft==false and .prerelease==false)) | length')
+
+          {
+            echo '| Release | Date       | Notes |'
+            echo '|---------|------------|-------|'
+            if [ "$COUNT" -eq 0 ]; then
+              echo '| - | - | No releases yet |'
+            else
+              echo "$RESP" | jq -r '
+                map(select(.draft==false and .prerelease==false)) |
+                .[] |
+                [
+                  (if .html_url then "[\(.name // .tag_name)](\(.html_url))" else (.name // .tag_name) end),
+                  (.published_at // .created_at // "" | sub("T.*$"; "")),
+                  (.body // "" | gsub("\r"; "") | split("\n")[0] | if . == "" then "-" else . end)
+                ] | "| " + (join(" | ")) + " |"
+              '
+            fi
+          } > /tmp/releases_body.md
+
+      - name: Ensure GitHub Releases markers exist
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! grep -q '<!-- GITHUB_RELEASES_START -->' README.md; then
+            {
+              echo
+              echo '## GitHub Releases'
+              echo
+              echo '<!-- GITHUB_RELEASES_START -->'
+              echo '<!-- GITHUB_RELEASES_END -->'
+              echo
+              echo '> This section is automatically updated by the release pipeline. Do not edit manually.'
+            } >> README.md
+          fi
+
+      - name: Inject GitHub Releases into README.md
+        shell: bash
+        run: |
+          set -euo pipefail
+          BODY=/tmp/releases_body.md
+          awk -v body="$BODY" '
+            /<!-- GITHUB_RELEASES_START -->/ { print; while ((getline L < body) > 0) print L; close(body); skip=1; next }
+            /<!-- GITHUB_RELEASES_END -->/   { print; skip=0; next }
+            skip!=1 { print }
+          ' README.md > README.tmp2
+          if ! cmp -s README.tmp2 README.md; then
+            mv README.tmp2 README.md
+            echo "README (GitHub Releases) updated."
+          else
+            echo "No changes to GitHub Releases section."
           fi
 
       - name: Commit & push README (only if changed)
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "ci: update Release History in README"
+          commit_message: "ci: update Release History and GitHub Releases in README"
           file_pattern: README.md
           # If your org forces GITHUB_TOKEN read-only, provide a PAT:
           # token: ${{ secrets.REPO_PUSH_TOKEN }}
