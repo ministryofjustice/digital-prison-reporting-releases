@@ -33,8 +33,7 @@ It enables dynamic and flexible promotion of services, lambdas, domains, and oth
 <!-- RELEASE_HISTORY_START -->
 | Version | Date       | Description |
 |---------|------------|-------------|
-
-| v1.0.0 | 2024-02-14 | Merge pull request #60 from ministryofjustice/deploy-flyway-preprod-3 |
+| - | - | No releases yet |
 <!-- RELEASE_HISTORY_END -->
 
 > This section is automatically updated by the release pipeline. Do not edit manually.
