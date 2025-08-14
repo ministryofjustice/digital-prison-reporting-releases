@@ -39,7 +39,17 @@ jobs:
           git fetch --tags --force --prune
           echo "Tags seen by CI:"
           git tag --sort=-creatordate | nl | sed -n '1,200p' || true
-
+      - name: Install PyYAML for YAML parsing
+        shell: bash
+        run: |
+            python3 - <<'PY'
+            import sys, subprocess
+            try:
+                import yaml  # noqa
+            except Exception:
+                subprocess.check_call([sys.executable, "-m", "pip", "install", "--disable-pip-version-check", "--no-input", "PyYAML"])
+            PY
+ 
       # -------- Build & inject Release History (from Prod/PreProd files) --------
       - name: Build release history body (from Prod/PreProd files)
         shell: bash
