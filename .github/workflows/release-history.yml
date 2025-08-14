@@ -149,10 +149,23 @@ jobs:
             echo "No changes to GitHub Releases section."
           fi
 
-      - name: Commit & push README (only if changed)
+      # Push to PR/feature branches — allow fast-forward conflicts by forcing with lease
+      - name: Commit & push (non-default branches, force-with-lease)
+        if: github.ref_name != github.event.repository.default_branch
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "ci: update Release History and GitHub Releases in README"
           file_pattern: README.md
-          # If your org forces GITHUB_TOKEN read-only, add a PAT secret and uncomment:
+          push_options: --force-with-lease
+          # If your org forces read-only GITHUB_TOKEN, uncomment and add a PAT:
           # token: ${{ secrets.REPO_PUSH_TOKEN }}
+
+      # Push to the default branch — NO force
+      - name: Commit & push (default branch)
+        if: github.ref_name == github.event.repository.default_branch
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "ci: update Release History and GitHub Releases in README"
+          file_pattern: README.md
+          # token: ${{ secrets.REPO_PUSH_TOKEN }}
+
