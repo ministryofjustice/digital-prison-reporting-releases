@@ -37,10 +37,41 @@ parameters:
     type: string
     default: ""
 
+jobs:
+  build_type:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - run: 
+          name: Build Type
+          command: |
+            echo "INFO: Project Key, << pipeline.parameters.project_key >>"          
+            echo "INFO: Downstream Executor, << pipeline.parameters.executor >>"
+            echo "INFO: Downstream Image TAG, << pipeline.parameters.tag >>"
+            echo "INFO: Project Key: << pipeline.parameters.project_key >>"          
+            echo "INFO: Executor: << pipeline.parameters.executor >>"
+            echo "INFO: Executor Tag: << pipeline.parameters.tag >>"
+
+  update_release_history:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - checkout
+
+      - run:
+          name: Install yq
+          command: |
+            sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 \
+              -O /usr/local/bin/yq && sudo chmod +x /usr/local/bin/yq
+
+      - run:
+          name: Update README release history (no push)
+          command: .github/scripts/update-release-history.sh
+
 workflows:
   release:
-    when: # Skip if the Set to True
-      not: <<pipeline.parameters.skip>>
+    when:
+      not: << pipeline.parameters.skip >>
     jobs:
       - build_type
       - reporting/generic_release:
@@ -69,17 +100,14 @@ workflows:
               ignore: /.*/
           requires: [build_type]
 
-jobs:
-  build_type:
-    docker:
-      - image: cimg/base:stable
-    steps:
-      - run: 
-          name: Build Type
-          command: |
-            echo "INFO: Project Key, << pipeline.parameters.project_key >>"          
-            echo "INFO: Downstream Executor, << pipeline.parameters.executor >>"
-            echo "INFO: Downstream Image TAG, << pipeline.parameters.tag >>"
-            echo "INFO: Project Key: << pipeline.parameters.project_key >>"          
-            echo "INFO: Executor: << pipeline.parameters.executor >>"
-            echo "INFO: Executor Tag: << pipeline.parameters.tag >>"
+  update-readme-history:
+    jobs:
+      - update_release_history:
+          filters:
+            branches:
+              only: /.*/
+            paths:
+              - "prod/*"
+              - "preprod/*"
+              - ".github/scripts/*"
+              - "README.md"
