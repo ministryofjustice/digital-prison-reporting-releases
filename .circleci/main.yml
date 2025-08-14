@@ -101,13 +101,14 @@ workflows:
           requires: [build_type]
 
   update-readme-history:
-    jobs:
-      - update_release_history:
-          filters:
-            branches:
-              only: /.*/
-            paths:
-              - "prod/*"
-              - "preprod/*"
-              - ".github/scripts/*"
-              - "README.md"
+     jobs:
+      - update_release_history
+  filters:
+      branches:
+        only: /.*/
+      paths:
+        - "prod/*"
+        - "preprod/*"
+        - ".github/scripts/*"
+        - "README.md"
+"
