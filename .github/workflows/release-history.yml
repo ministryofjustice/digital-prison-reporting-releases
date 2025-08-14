@@ -67,6 +67,16 @@ EOF
 
 <!-- RELEASE_HISTORY_END -->
 EOF
+      - name: Sanity check markers & preview block
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Checking README markers…"
+          grep -n '<!-- RELEASE_HISTORY_START -->' README.md || { echo 'START marker not found'; exit 1; }
+          grep -n '<!-- RELEASE_HISTORY_END -->' README.md   || { echo 'END marker not found'; exit 1; }
+
+          echo "Preview generated block (first 12 lines):"
+          nl -ba /tmp/release_block.md | head -n 12 || true
 
       - name: Inject Release History into README.md
         shell: bash
@@ -86,12 +96,8 @@ EOF
             echo "No changes to README."
           fi
 
-      - name: Commit & push changes
+      - name: Commit README if changed
         shell: bash
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
-          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           set -euo pipefail
           git config user.name  "github-actions[bot]"
@@ -99,18 +105,30 @@ EOF
 
           git add README.md || true
           if git diff --cached --quiet; then
-            echo "Nothing to commit."
+            echo "NOTHING_TO_COMMIT=true" >> "$GITHUB_ENV"
             exit 0
           fi
 
           git commit -m "ci: update Release History in README"
+          echo "NOTHING_TO_COMMIT=false" >> "$GITHUB_ENV"
+          
+      # Push to PR head (for PR events)
+      - name: Push to PR branch
+        if: env.NOTHING_TO_COMMIT == 'false' && github.event_name == 'pull_request'
+        env:
+          TARGET: ${{ github.event.pull_request.head.ref }}
+        run: git push origin "HEAD:${TARGET}"
 
-          # Push to PR head if PR; to same branch if branch push; to default branch if tag push
-          if [[ "$EVENT_NAME" == "pull_request" && -n "${PR_HEAD_REF:-}" ]]; then
-            git push origin "HEAD:${PR_HEAD_REF}"
-          elif [[ "${GITHUB_REF}" == refs/heads/* ]]; then
-            BRANCH="${GITHUB_REF#refs/heads/}"
-            git push origin "HEAD:${BRANCH}"
-          else
-            git push origin "HEAD:${DEFAULT_BRANCH}"
-          fi
+      # Push back to the same branch (for branch pushes)
+      - name: Push to same branch
+        if: env.NOTHING_TO_COMMIT == 'false' && startsWith(github.ref, 'refs/heads/')
+        env:
+          TARGET: ${{ github.ref_name }}
+        run: git push origin "HEAD:${TARGET}"
+
+      # Push to default branch (for tag pushes)
+      - name: Push to default branch (tag push)
+        if: env.NOTHING_TO_COMMIT == 'false' && startsWith(github.ref, 'refs/tags/')
+        env:
+          TARGET: ${{ github.event.repository.default_branch }}
+        run: git push origin "HEAD:${TARGET}"
