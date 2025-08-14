@@ -6,35 +6,36 @@ on:
     branches: [ main ]
   push:
     branches:
-      - '**'     # run on all branches
+      - '**'
     tags:
       - 'v*'
 
-# The workflow commits back to the repo
 permissions:
   contents: read
 
 jobs:
   release-history:
-    # Prevent re-running on the bot's own commit
     if: ${{ github.actor != 'github-actions[bot]' }}
     permissions:
       contents: write
       pull-requests: write
     runs-on: ubuntu-latest
+    concurrency:
+      group: release-history-${{ github.ref }}
+      cancel-in-progress: false
 
     steps:
       - name: Checkout repository (full history + tags)
         uses: actions/checkout@v4
         with:
-          # If it's a tag push, check out default branch to commit there.
-          # If it's a PR, check out the PR head branch.
-          # Else, use the current ref (branch push).
+          # Tag push -> check out default branch so we can write there
+          # PR -> PR head branch
+          # Branch push -> that branch
           ref: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && github.event.repository.default_branch || github.event.pull_request.head.ref || github.ref }}
           fetch-depth: 0
           fetch-tags: true
 
-      - name: Build release history table from git tags
+      - name: Build release history table (body only)
         id: build_table
         shell: bash
         run: |
@@ -55,38 +56,36 @@ jobs:
             done <<< "$TAGS"
           fi
 
-          # Build block: markers + table only (no extra heading/note to avoid duplicates)
-          cat > /tmp/release_block.md <<'EOF'
-<!-- RELEASE_HISTORY_START -->
-
+          # Body = header + rows (NO markers)
+          cat > /tmp/release_body.md <<'EOF'
 | Version | Date       | Description |
 |---------|------------|-------------|
 EOF
-          printf "%b\n" "$TABLE_ROWS" >> /tmp/release_block.md
-          cat >> /tmp/release_block.md <<'EOF'
+          printf "%b\n" "$TABLE_ROWS" >> /tmp/release_body.md
 
-<!-- RELEASE_HISTORY_END -->
-EOF
-      - name: Sanity check markers & preview block
+      - name: Sanity check markers & preview
         shell: bash
         run: |
           set -euo pipefail
           echo "Checking README markers…"
           grep -n '<!-- RELEASE_HISTORY_START -->' README.md || { echo 'START marker not found'; exit 1; }
           grep -n '<!-- RELEASE_HISTORY_END -->' README.md   || { echo 'END marker not found'; exit 1; }
-
-          echo "Preview generated block (first 12 lines):"
-          nl -ba /tmp/release_block.md | head -n 12 || true
+          echo "Preview of body to inject:"
+          nl -ba /tmp/release_body.md | head -n 12 || true
 
       - name: Inject Release History into README.md
         shell: bash
         run: |
           set -euo pipefail
-          awk -v block="$(cat /tmp/release_block.md)" '
-            BEGIN { in_block=0 }
-            /<!-- RELEASE_HISTORY_START -->/ { print block; in_block=1; next }
-            /<!-- RELEASE_HISTORY_END -->/   { in_block=0; next }
-            !in_block { print }
+          BODY=/tmp/release_body.md
+          awk -v body="$BODY" '
+            /<!-- RELEASE_HISTORY_START -->/ {
+              print;                      # print START marker
+              while ((getline L < body) > 0) print L; close(body);  # print body
+              skip=1; next
+            }
+            /<!-- RELEASE_HISTORY_END -->/ { print; skip=0; next }  # print END marker
+            skip!=1 { print }                                       # print everything else outside block
           ' README.md > README.tmp
 
           if ! cmp -s README.tmp README.md; then
@@ -96,39 +95,10 @@ EOF
             echo "No changes to README."
           fi
 
-      - name: Commit README if changed
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          git add README.md || true
-          if git diff --cached --quiet; then
-            echo "NOTHING_TO_COMMIT=true" >> "$GITHUB_ENV"
-            exit 0
-          fi
-
-          git commit -m "ci: update Release History in README"
-          echo "NOTHING_TO_COMMIT=false" >> "$GITHUB_ENV"
-          
-      # Push to PR head (for PR events)
-      - name: Push to PR branch
-        if: env.NOTHING_TO_COMMIT == 'false' && github.event_name == 'pull_request'
-        env:
-          TARGET: ${{ github.event.pull_request.head.ref }}
-        run: git push origin "HEAD:${TARGET}"
-
-      # Push back to the same branch (for branch pushes)
-      - name: Push to same branch
-        if: env.NOTHING_TO_COMMIT == 'false' && startsWith(github.ref, 'refs/heads/')
-        env:
-          TARGET: ${{ github.ref_name }}
-        run: git push origin "HEAD:${TARGET}"
-
-      # Push to default branch (for tag pushes)
-      - name: Push to default branch (tag push)
-        if: env.NOTHING_TO_COMMIT == 'false' && startsWith(github.ref, 'refs/tags/')
-        env:
-          TARGET: ${{ github.event.repository.default_branch }}
-        run: git push origin "HEAD:${TARGET}"
+      - name: Commit & push README (only if changed)
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "ci: update Release History in README"
+          file_pattern: README.md
+          # If your org forces GITHUB_TOKEN read-only, uncomment next line and add a PAT secret
+          # token: ${{ secrets.REPO_PUSH_TOKEN }}
