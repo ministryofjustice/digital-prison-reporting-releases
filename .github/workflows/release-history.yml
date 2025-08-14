@@ -28,9 +28,6 @@ jobs:
       - name: Checkout repository (full history + tags)
         uses: actions/checkout@v4
         with:
-          # Tag push -> checkout default branch to write there
-          # PR -> checkout PR head branch
-          # Branch push -> checkout the branch itself
           ref: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && github.event.repository.default_branch || github.event.pull_request.head.ref || github.ref }}
           fetch-depth: 0
           fetch-tags: true
@@ -43,33 +40,10 @@ jobs:
           echo "Tags seen by CI:"
           git tag --sort=-creatordate | nl | sed -n '1,200p' || true
 
-      # -------- Build & inject Release History (from git tags) --------
-      - name: Build release history body (tags only)
+      # -------- Build & inject Release History (from Prod/PreProd files) --------
+      - name: Build release history body (from Prod/PreProd files)
         shell: bash
-        run: |
-          set -euo pipefail
-          TAGS=$(git tag --sort=-creatordate | head -n 100)
-
-          if [ -z "$TAGS" ]; then
-            TABLE_ROWS="| - | - | No releases yet |"
-          else
-            TABLE_ROWS=""
-            while IFS= read -r tag; do
-              [ -z "$tag" ] && continue
-              date=$(git log -1 --format=%as "$tag" 2>/dev/null || echo "-")
-              subject=$(git for-each-ref "refs/tags/$tag" --format='%(subject)' 2>/dev/null || true)
-              if [ -z "$subject" ]; then
-                subject=$(git log -1 --pretty=%s "$tag" 2>/dev/null || echo "Release $tag")
-              fi
-              TABLE_ROWS="${TABLE_ROWS}\n| ${tag} | ${date} | ${subject} |"
-            done <<< "$TAGS"
-          fi
-
-          {
-            echo '| Version | Date       | Description |'
-            echo '|---------|------------|-------------|'
-            printf "%b\n" "$TABLE_ROWS"
-          } > /tmp/release_body.md
+        run: python3 .github/scripts/build-release-from-envs.py
 
       - name: Ensure Release History markers exist
         shell: bash
@@ -119,7 +93,6 @@ jobs:
             sudo apt-get install -y jq
           fi
 
-          # Get up to 20 published releases (exclude drafts and prereleases)
           RESP=$(curl -fsSL -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.github+json" \
             "$GH_API/repos/$REPO/releases?per_page=20")
           COUNT=$(echo "$RESP" | jq 'map(select(.draft==false and .prerelease==false)) | length')
@@ -180,5 +153,5 @@ jobs:
         with:
           commit_message: "ci: update Release History and GitHub Releases in README"
           file_pattern: README.md
-          # If your org forces GITHUB_TOKEN read-only, provide a PAT:
+          # If your org forces GITHUB_TOKEN read-only, add a PAT secret and uncomment:
           # token: ${{ secrets.REPO_PUSH_TOKEN }}
