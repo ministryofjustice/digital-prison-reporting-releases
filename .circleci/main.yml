@@ -70,7 +70,7 @@ jobs:
 
 workflows:
   release:
-    when:
+    when: # Skip if the Set to True
       not: << pipeline.parameters.skip >>
     jobs:
       - build_type
@@ -101,13 +101,13 @@ workflows:
           requires: [build_type]
 
   update-readme-history:
-     jobs:
-      - update_release_history
-  filters:
-      branches:
-        only: /.*/
-      paths:
-        - "prod/*"
-        - "preprod/*"
-        - ".github/scripts/*"
-        - "README.md"
+    jobs:
+      - update_release_history:
+          filters:
+            branches:
+              only: /.*/
+            paths:
+              - "prod/*"
+              - "preprod/*"
+              - ".github/scripts/*"
+              - "README.md"
