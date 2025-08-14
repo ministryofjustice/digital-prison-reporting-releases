@@ -161,3 +161,13 @@ Make sure your file follows the nested structure required for `yq` v4.
 * Slack: #ask-dpr
 
 ---
+
+## GitHub Releases
+
+<!-- GITHUB_RELEASES_START -->
+| Release | Date       | Notes |
+|---------|------------|-------|
+| [v1.0.0-dpr-release-pipelines](https://github.com/ministryofjustice/digital-prison-reporting-releases/releases/tag/v1.0.0) | 2024-02-14 | ## What's Changed |
+<!-- GITHUB_RELEASES_END -->
+
+> This section is automatically updated by the release pipeline. Do not edit manually.
