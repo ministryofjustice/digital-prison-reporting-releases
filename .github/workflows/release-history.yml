@@ -1,17 +1,23 @@
 name: Generate Release History in README
+
 on:
   workflow_dispatch:
   pull_request:
     branches: [ main ]
   push:
+    branches:
+      - '**'     # run on all branches
     tags:
-      - "v*"
+      - 'v*'
 
+# The workflow commits back to the repo
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   release-history:
+    # Prevent re-running on the bot's own commit
+    if: ${{ github.actor != 'github-actions[bot]' }}
     permissions:
       contents: write
       pull-requests: write
@@ -21,6 +27,9 @@ jobs:
       - name: Checkout repository (full history + tags)
         uses: actions/checkout@v4
         with:
+          # If it's a tag push, check out default branch to commit there.
+          # If it's a PR, check out the PR head branch.
+          # Else, use the current ref (branch push).
           ref: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && github.event.repository.default_branch || github.event.pull_request.head.ref || github.ref }}
           fetch-depth: 0
           fetch-tags: true
@@ -46,9 +55,8 @@ jobs:
             done <<< "$TAGS"
           fi
 
+          # Build block: markers + table only (no extra heading/note to avoid duplicates)
           cat > /tmp/release_block.md <<'EOF'
-## 📦 Release History
-
 <!-- RELEASE_HISTORY_START -->
 
 | Version | Date       | Description |
@@ -58,8 +66,6 @@ EOF
           cat >> /tmp/release_block.md <<'EOF'
 
 <!-- RELEASE_HISTORY_END -->
-
-> This section is automatically updated by the release pipeline. Do not edit manually.
 EOF
 
       - name: Inject Release History into README.md
@@ -82,19 +88,29 @@ EOF
 
       - name: Commit & push changes
         shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           set -euo pipefail
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+
           git add README.md || true
           if git diff --cached --quiet; then
             echo "Nothing to commit."
             exit 0
           fi
-          git commit -m "ci: update Release History in README [skip ci]" || true
 
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
+          git commit -m "ci: update Release History in README"
+
+          # Push to PR head if PR; to same branch if branch push; to default branch if tag push
+          if [[ "$EVENT_NAME" == "pull_request" && -n "${PR_HEAD_REF:-}" ]]; then
+            git push origin "HEAD:${PR_HEAD_REF}"
+          elif [[ "${GITHUB_REF}" == refs/heads/* ]]; then
+            BRANCH="${GITHUB_REF#refs/heads/}"
+            git push origin "HEAD:${BRANCH}"
           else
-            git push origin "HEAD:${{ github.event.repository.default_branch }}"
+            git push origin "HEAD:${DEFAULT_BRANCH}"
           fi
