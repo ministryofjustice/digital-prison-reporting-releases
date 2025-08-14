@@ -13,9 +13,9 @@ extract_release_info() {
     last_updated=$(git log -1 --format="%ad" --date=short -- "$file")
 
     if [[ "$project" != "null" && "$tag" != "null" ]]; then
-      echo "| $project | $tag | $folder | $last_updated |"
+      echo "$last_updated|$project|$tag|$folder"
     fi
-  done
+  done | sort -r | awk -F'|' '{ printf "| %s | %s | %s | %s |\n", $2, $3, $4, $1 }'
 }
 
 # Generate release history table
@@ -32,4 +32,4 @@ EOF
 # Replace block in README
 perl -0777 -i -pe "s/<!-- RELEASE_HISTORY_START -->.*?<!-- RELEASE_HISTORY_END -->/$release_table/s" "$README_FILE"
 
-echo "✅ README.md updated with release history (no commit)."
+echo "README.md updated with release history (no commit)."
