@@ -45,6 +45,7 @@ jobs:
         shell: bash
         run: python3 .github/scripts/build-release-from-envs.py
 
+
       - name: Ensure Release History markers exist
         shell: bash
         run: |
