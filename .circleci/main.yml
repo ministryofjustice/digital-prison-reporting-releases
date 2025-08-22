@@ -95,11 +95,14 @@ workflows:
             - hmpps-reporting-common
           filters:
             branches:
-              only: /.*/
+              only: main
             tags:
               ignore: /.*/
           requires: [build_type]
 
   update-readme-history:
     jobs:
-      - update_release_history
+      - update_release_history:
+          filters:
+            branches:
+              only: main
