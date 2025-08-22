@@ -28,6 +28,33 @@ It enables dynamic and flexible promotion of services, lambdas, domains, and oth
 ```
 
 ---
+## Release History
+
+<!-- RELEASE_HISTORY_START -->
+| Project                         | Tag       | Environment | Last Updated |
+|---------------------------------|-----------|-------------|---------------|
+| digital-prison-reporting-java-template | v0.0.19 | prod | 2023-11-09 |
+| digital-prison-reporting-transfer-component | v0.0.21 | prod | 2024-07-18 |
+| hmpps-dpr-postgres-tickle-lambda | v0.0.1 | prod | 2025-04-30 |
+| digital-prison-reporting-lambdas | v0.0.24 | prod | 2025-08-13 |
+| digital-prison-reporting-domain-builder | v1.0.0 | prod | 2023-10-24 |
+| digital-prison-reporting-domains | v0.0.264-hotfix | prod | 2025-07-14 |
+| digital-prison-reporting-thirdparty-components | v0.0.10 | prod | 2025-07-15 |
+| digital-prison-reporting-jobs | v1.0.114 | prod | 2025-06-12 |
+| digital-prison-reporting-transfer-component | v0.0.35 | preprod | 2025-08-12 |
+| digital-prison-reporting-transfer-component | v0.0.36 | preprod | 2025-08-12 |
+| hmpps-dpr-postgres-tickle-lambda | v0.0.1 | preprod | 2025-04-24 |
+| hmpps-dpr-multiphase-cleanup-lambda | v0.0.1 | preprod | 2025-06-20 |
+| digital-prison-reporting-lambdas | v0.0.24 | preprod | 2025-07-30 |
+| hmpps-dpr-scheduled-dataset-lambda | v0.0.8 | preprod | 2025-02-19 |
+| hmpps-datahub-landing-zone-processing-lambda | v0.0.1 | preprod | 2025-07-08 |
+| digital-prison-reporting-domains | v0.0.298 | preprod | 2025-08-12 |
+| hmpps-dpr-multiphase-query-lambda | v0.0.6 | preprod | 2025-06-26 |
+| digital-prison-reporting-thirdparty-components | v0.0.11 | preprod | 2025-07-25 |
+| digital-prison-reporting-jobs | v1.0.117 | preprod | 2025-07-28 |
+<!-- RELEASE_HISTORY_END -->
+
+> This section is automatically updated by the release pipeline. Do not edit manually.
 
 ---
 
@@ -149,4 +176,4 @@ Make sure your file follows the nested structure required for `yq` v4.
 * Platform Engineering Team —  HMPPS DPR TEAM
 * Slack: #ask-dpr
 
----
+
