@@ -1,0 +1,17 @@
+release:
+  project: hmpps-datahub-landing-zone-processing-lambda
+  release_type: gradle
+  release_category: backend
+  tag: v0.0.1
+  executor:
+    name: reporting/java
+    tag: 21.0
+  extra_args:
+    refresh_lambda: false
+    refresh_function: dpr-landing-zone-processing-function
+  s3_sync_args:
+    app_dir: ./project
+    bucket_prefix: dpr-artifact-store
+    src_artifacts_path: build/libs/
+    sync_args: '--exclude \"*\" --include \"*-all*jar\"'
+    is_gradle_build: true
