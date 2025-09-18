@@ -4,6 +4,9 @@ release:
   release_category: backend
   tag: v1.0.120
   bump: 1
+  executor:
+    name: reporting/java
+    tag: 8.0
   s3_sync_args:
     app_dir: ./project
     bucket_prefix: dpr-artifact-store
