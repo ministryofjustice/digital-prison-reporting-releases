@@ -3,7 +3,7 @@ release:
   release_type: flyway
   release_category: backend
   tag: v0.0.46
-  bump: 1
+  bump: 2
   executor:
     name: reporting/aws
     tag: 2023.12.1
