@@ -2,7 +2,7 @@ release:
   project: digital-prison-reporting-jobs
   release_type: gradle
   release_category: backend
-  tag: v1.0.133
+  tag: v1.0.134
   bump: 1
   executor:
     name: reporting/java
