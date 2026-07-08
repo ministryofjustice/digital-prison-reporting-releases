@@ -5,8 +5,8 @@ release:
   executor:
     name: reporting/terraform-aws
     tag: v1.10.0-awscliv1-1.0.2
-  tag: v0.0.468
-  bump: 2
+  tag: v0.0.470
+  bump: 1
   s3_sync_args:
     app_dir: ./project
     bucket_prefix: dpr-glue-jobs
