@@ -14,3 +14,5 @@ release:
     sync_args: '--exclude \"*\" --include \"*-all*jar\"'
     is_gradle_build: true
     deploy_script: true
+  extra_args:
+    build_gradle_args: '-Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=512m" --max-workers=2'
