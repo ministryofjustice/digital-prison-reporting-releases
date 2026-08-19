@@ -95,7 +95,7 @@ workflows:
             - hmpps-reporting-common
           filters:
             branches:
-              only: main
+              only: /.*/
             tags:
               ignore: /.*/
           requires: [build_type]
