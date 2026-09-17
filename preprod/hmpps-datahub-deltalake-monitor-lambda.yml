@@ -1,0 +1,15 @@
+release:
+  project: hmpps-datahub-deltalake-monitor-lambda
+  release_type: python
+  release_category: backend
+  tag: v0.0.1
+  executor:
+    name: reporting/python
+    tag: "3.13"
+  extra_args:
+    refresh_lambda: true
+    refresh_function: dpr-deltalake-monitor-function
+    lambda_type: python
+  s3_sync_args:
+    bucket_prefix: dpr-artifact-store
+    is_gradle_build: false
