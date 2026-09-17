@@ -70,6 +70,7 @@ Use the following table to determine the correct `executor` and `tag` based on t
 | Terraform Components               | `terraform`             | `reporting/terraform-aws` | `v1.10.0-awscliv1-1.0.2` | Used for IaC and DMS provisioning    |
 | Flyway Migration                   | `flyway`                | `reporting/aws`        | `2023.12.1`                 | Flyway DB migrations                 |
 | Third-Party Artifacts              | `thirdparty_artifacts`  | `reporting/base`       | `3.10`                      | For artifact bundling and publishing |
+| Python Lambda                      | `python`                | `reporting/python`     | `3.13`                      | e.g. `hmpps-datahub-deltalake-monitor-lambda.yml` |
 | Other / Default Java Jobs          | `gradle`                | `reporting/java`       | `11.0` (default fallback)   | If job type not matched above        |
 
 ---
@@ -119,7 +120,7 @@ preprod/my-new-service.yml
 ```yaml
 release:
   project: my-new-service
-  release_type: backend | lambda | thirdparty_artifacts | terraform
+  release_type: backend | lambda | thirdparty_artifacts | terraform | python
   release_category: backend
   tag: v1.0.0
   executor:
@@ -131,6 +132,29 @@ release:
     s3_bucket_prefix: dpr-artifact-store
     yaml_path: configs
 ````
+
+For a Python Lambda (`release_type: python` builds and publishes a versioned
+ZIP, with a `vLatest` alias, instead of a jar):
+
+```yaml
+release:
+  project: my-new-python-lambda
+  release_type: python
+  release_category: backend
+  tag: v0.0.1
+  executor:
+    name: reporting/python
+    tag: "3.13"
+  extra_args:
+    # false until Terraform has created the target Lambda function, to sync just the zip to S3.
+    # Then, once the lambda itself exists (via a domains repo terraform release), it 
+    # should be switched to true so that the zip version used by the lambda is updated. 
+    refresh_lambda: false
+    refresh_function: my-lambda-function-name
+    lambda_type: python
+  s3_sync_args:
+    bucket_prefix: dpr-artifact-store
+```
 
 3. Commit and push your changes. The pipeline will:
 
