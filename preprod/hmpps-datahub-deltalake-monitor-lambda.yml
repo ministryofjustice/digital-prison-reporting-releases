@@ -12,3 +12,4 @@ release:
     lambda_type: python
   s3_sync_args:
     bucket_prefix: dpr-artifact-store
+    is_gradle_build: false
