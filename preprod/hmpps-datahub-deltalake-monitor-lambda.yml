@@ -3,7 +3,7 @@ release:
   release_type: python
   release_category: backend
   tag: v0.0.3
-  bump: 2
+  bump: 3
   executor:
     name: reporting/python
     tag: 3.13
@@ -13,6 +13,7 @@ release:
     lambda_type: python
   s3_sync_args:
     bucket_prefix: dpr-artifact-store
+    sync_args: '--exclude \"*\" --include \"*zip\"'
     is_gradle_build: false
     app_dir: project
     src_artifacts_path: dist/
