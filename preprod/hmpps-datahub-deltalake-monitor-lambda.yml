@@ -13,6 +13,7 @@ release:
     lambda_type: python
   s3_sync_args:
     bucket_prefix: dpr-artifact-store
+    sync_args: '--exclude \"*\" --include \"*zip\"'
     is_gradle_build: false
     app_dir: project
     src_artifacts_path: dist/
