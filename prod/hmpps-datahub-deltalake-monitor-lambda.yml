@@ -3,7 +3,7 @@ release:
   release_type: python
   release_category: backend
   tag: v0.0.6
-  bump: 3
+  bump: 1
   executor:
     name: reporting/python
     tag: 3.13
