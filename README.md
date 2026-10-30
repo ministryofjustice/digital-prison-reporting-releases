@@ -1,29 +1,56 @@
 ```markdown
 # Digital Prison Reporting - Releases
 
-This repository orchestrates the deployment of digital prison reporting components using **CircleCI**, based on YAML configuration files located in `prod/` and `preprod/` directories.
+This repository orchestrates the deployment of digital prison reporting components.
 
-It enables dynamic and flexible promotion of services, lambdas, domains, and other artifacts across environments using a parameterized CI/CD setup.
+**Data-platform** promotions (jobs, domains, lambdas, …) still use **CircleCI** and
+flat YAML files under `prod/*.yml` / `preprod/*.yml` (see below).
 
----
-
-## Repository Structure
+**Cloud Platform Helm apps** (starting with MI-UI) use **GitHub Actions**: a
+folder per repo, a `release.yml` pin, optional `config/values.yaml`, and
+[`.github/workflows/helm_app_release.yml`](.github/workflows/helm_app_release.yml)
+which dispatches the app’s `release.yml` →
+`hmpps-reporting-workflows` `generic_release_pipeline` (helm-only, no rebuild).
 
 ```
 
 .
-├── preprod/                            # Pre-production release definitions
-│   ├── digital-prison-reporting-jobs.yml
-│   ├── digital-prison-reporting-thirdparty-components.yml
-│   └── ...
-├── prod/                               # Production release definitions
-│   ├── digital-prison-reporting-jobs.yml
-│   ├── digital-prison-reporting-thirdparty-components.yml
-│   └── ...
-├── .circleci/
-│   ├── config.yml                      # Setup workflow to parse changes and launch main pipeline
-│   └── main.yml                        # Main CircleCI pipeline with generic release logic
+├── preprod/
+│   ├── digital-prison-reporting-jobs.yml          # CircleCI (legacy flat)
+│   └── hmpps-digital-prison-reporting-mi-ui/      # GHA helm_app
+│       ├── release.yml
+│       └── config/values.yaml
+├── prod/
+│   └── … (same split)
+├── .github/workflows/helm_app_release.yml         # GHA orchestrator (helm_app only)
+├── .circleci/                                     # data-platform releases
 └── README.md
+
+```
+
+### Helm app releases (MI-UI)
+
+1. Pick the app release tag `vX.Y.Z` from the
+   [MI-UI Tags page](https://github.com/ministryofjustice/hmpps-digital-prison-reporting-mi-ui/tags).
+   Every `main` build creates one and pushes the image as `:vX.Y.Z`.
+   Ignore `Lib-v*` tags — they track the shared library version.
+2. Edit `preprod|prod/hmpps-digital-prison-reporting-mi-ui/release.yml` — set `tag`.
+3. Optionally add Helm overrides in `config/values.yaml`. The release file
+   pins only `tag`: the app's `release.yml` runs on its `main` and checks out
+   that tag, so image, Helm chart and values all come from the tagged commit.
+4. Open a PR — validates the `vX.Y.Z` format and that the tag exists in the app repo.
+   Merging to `main` dispatches `ministryofjustice/hmpps-digital-prison-reporting-mi-ui`
+   workflow `release.yml` **on `main`** with `environment` + `release-tag`.
+   That run deploys image `:vX.Y.Z` with the Helm chart + values checked out
+   **at the tag** (GitHub Environment approvals still apply on the app).
+5. Repo secret required on **this** repo: `RELEASES_GITHUB_TOKEN` (PAT or GitHub App
+   with `actions: write` on target app repos).
+
+`release.type` must be `helm_app`. Flat CircleCI YAMLs are ignored by the GHA workflow.
+
+---
+
+## Repository Structure (data-platform / CircleCI)
 
 ```
 

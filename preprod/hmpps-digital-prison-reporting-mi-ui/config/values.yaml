@@ -1,0 +1,7 @@
+# Optional Helm value overrides applied on top of the app chart's
+# helm_deploy/values-<environment>.yaml during promote.
+# Leave empty (comments only) unless you need a one-off release override.
+
+# Example:
+# generic-service:
+#   replicaCount: 2

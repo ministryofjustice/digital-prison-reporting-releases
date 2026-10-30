@@ -1,0 +1,246 @@
+name: Helm app release
+
+# Dispatches helm-only promote workflows in target app repos when a
+# helm_app release.yml under preprod/ or prod/ changes.
+# Leaves existing flat CircleCI data-platform YAMLs untouched.
+
+on:
+  push:
+    # TEST: test/mi-ui-dev-release dispatches too — remove before merging.
+    branches: [main, test/mi-ui-dev-release]
+    paths:
+      - 'preprod/*/release.yml'
+      - 'prod/*/release.yml'
+      - 'preprod/*/config/**'
+      - 'prod/*/config/**'
+  pull_request:
+    paths:
+      - 'preprod/*/release.yml'
+      - 'prod/*/release.yml'
+      - 'preprod/*/config/**'
+      - 'prod/*/config/**'
+  workflow_dispatch:
+    inputs:
+      release_path:
+        description: Path to release.yml (e.g. prod/hmpps-digital-prison-reporting-mi-ui/release.yml)
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+env:
+  # Branch of the app repo whose release.yml is dispatched. Always main.
+  # TEST: DHS-704-tag-test until MI-UI release.yml is on main — set back to main.
+  APP_DISPATCH_REF: DHS-704-tag-test
+
+jobs:
+  detect:
+    name: Detect helm_app release
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      has_releases: ${{ steps.plan.outputs.has_releases }}
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Install yq
+        run: |
+          sudo wget -qO /usr/local/bin/yq \
+            https://github.com/mikefarah/yq/releases/download/v4.44.3/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Plan releases
+        id: plan
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          DISPATCH_PATH: ${{ inputs.release_path }}
+          IS_PR: ${{ github.event_name == 'pull_request' }}
+        run: |
+          set -euo pipefail
+          FILES=()
+          if [ "${EVENT_NAME}" = "workflow_dispatch" ]; then
+            FILES=("${DISPATCH_PATH}")
+          elif [ "${EVENT_NAME}" = "pull_request" ]; then
+            while IFS= read -r f; do FILES+=("$f"); done < <(
+              git diff --name-only "origin/${{ github.base_ref }}"...HEAD -- \
+                'preprod/*/release.yml' 'prod/*/release.yml' || true
+            )
+          else
+            BEFORE="${{ github.event.before }}"
+            if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+              RANGE="HEAD~1"
+            else
+              RANGE="${BEFORE}"
+            fi
+            while IFS= read -r f; do FILES+=("$f"); done < <(
+              git diff --name-only "${RANGE}" "${{ github.sha }}" -- \
+                'preprod/*/release.yml' 'prod/*/release.yml' || true
+            )
+          fi
+
+          # Also treat config-only changes as targeting that app's release.yml
+          if [ "${EVENT_NAME}" != "workflow_dispatch" ]; then
+            if [ "${EVENT_NAME}" = "pull_request" ]; then
+              CONFIG_CMD=(git diff --name-only "origin/${{ github.base_ref }}"...HEAD)
+            else
+              BEFORE="${{ github.event.before }}"
+              if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+                CONFIG_CMD=(git diff --name-only HEAD~1 HEAD)
+              else
+                CONFIG_CMD=(git diff --name-only "$BEFORE" "${{ github.sha }}")
+              fi
+            fi
+            while IFS= read -r f; do
+              [ -z "$f" ] && continue
+              dir=$(dirname "$(dirname "$f")")
+              rel="${dir}/release.yml"
+              if [ -f "$rel" ]; then
+                FILES+=("$rel")
+              fi
+            done < <("${CONFIG_CMD[@]}" -- 'preprod/*/config/**' 'prod/*/config/**' || true)
+          fi
+          # Unique
+          mapfile -t FILES < <(printf '%s\n' "${FILES[@]}" | sed '/^$/d' | sort -u)
+
+          MATRIX='[]'
+          for rel in "${FILES[@]:-}"; do
+            [ -f "$rel" ] || continue
+            TYPE=$(yq e '.release.type // ""' "$rel")
+            if [ "$TYPE" != "helm_app" ]; then
+              echo "Skipping non-helm_app: $rel (type=${TYPE})"
+              continue
+            fi
+            PROJECT=$(yq e '.release.project' "$rel")
+            TAG=$(yq e '.release.tag // ""' "$rel")
+            ENV=$(yq e '.release.environment' "$rel")
+            WF=$(yq e '.release.workflow // "release.yml"' "$rel")
+            VERIFY_RAW=$(yq e '.release.verify_image // true' "$rel")
+            if [ "$VERIFY_RAW" = "false" ] || [ "$VERIFY_RAW" = "0" ]; then
+              VERIFY=false
+            else
+              VERIFY=true
+            fi
+            DIR=$(dirname "$rel")
+            VALUES_FILE="${DIR}/config/values.yaml"
+            VALUES=""
+            if [ -f "$VALUES_FILE" ]; then
+              VALUES=$(cat "$VALUES_FILE")
+            fi
+
+            if [[ "$TAG" == *REPLACE* ]]; then
+              echo "::warning::Placeholder tag in $rel — set a real app release tag (vX.Y.Z) before merge"
+              if [ "$IS_PR" != "true" ]; then
+                echo "::error::Refusing to dispatch placeholder tag"
+                exit 1
+              fi
+            elif ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "::error::Invalid tag '${TAG}' in $rel — expected vX.Y.Z (app release tag)"
+              exit 1
+            fi
+
+            # PR = validate only (no dispatch)
+            ENTRY=$(jq -nc \
+              --arg path "$rel" \
+              --arg project "$PROJECT" \
+              --arg tag "$TAG" \
+              --arg env "$ENV" \
+              --arg workflow "$WF" \
+              --argjson verify "$VERIFY" \
+              --arg values "$VALUES" \
+              --arg dry_run "$IS_PR" \
+              '{path:$path,project:$project,tag:$tag,environment:$env,workflow:$workflow,verify_image:$verify,release_values_yaml:$values,dry_run:($dry_run=="true")}')
+            MATRIX=$(echo "$MATRIX" | jq -c --argjson e "$ENTRY" '. + [$e]')
+            echo "Queued: $rel -> $PROJECT $ENV $TAG"
+          done
+
+          COUNT=$(echo "$MATRIX" | jq 'length')
+          echo "matrix=$(echo "$MATRIX" | jq -c .)" >> "$GITHUB_OUTPUT"
+          if [ "$COUNT" -gt 0 ]; then
+            echo "has_releases=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_releases=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  validate:
+    name: Validate ${{ matrix.project }} ${{ matrix.environment }}
+    needs: detect
+    if: needs.detect.outputs.has_releases == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(needs.detect.outputs.matrix) }}
+    steps:
+      - name: Summarise
+        run: |
+          echo "path=${{ matrix.path }}"
+          echo "project=${{ matrix.project }}"
+          echo "environment=${{ matrix.environment }}"
+          echo "tag=${{ matrix.tag }}"
+          echo "dry_run=${{ matrix.dry_run }}"
+
+      - name: Verify tag exists in app repo
+        if: ${{ !contains(matrix.tag, 'REPLACE') }}
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_GITHUB_TOKEN || github.token }}
+          PROJECT: ${{ matrix.project }}
+          TAG: ${{ matrix.tag }}
+        run: |
+          set -euo pipefail
+          if ! gh api "repos/ministryofjustice/${PROJECT}/git/ref/tags/${TAG}" >/dev/null 2>&1; then
+            echo "::error::Tag ${TAG} not found in ministryofjustice/${PROJECT} (see its Tags page; app tags are vX.Y.Z, not Lib-v*)"
+            exit 1
+          fi
+          SHA=$(gh api "repos/ministryofjustice/${PROJECT}/commits/${TAG}" --jq .sha)
+          echo "Tag ${TAG} -> ${SHA}"
+
+  dispatch:
+    name: Dispatch ${{ matrix.project }} ${{ matrix.environment }}
+    needs: [detect, validate]
+    if: |
+      github.event_name != 'pull_request' &&
+      needs.detect.outputs.has_releases == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(needs.detect.outputs.matrix) }}
+    steps:
+      - name: Trigger app release workflow
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_GITHUB_TOKEN }}
+          PROJECT: ${{ matrix.project }}
+          WORKFLOW: ${{ matrix.workflow }}
+          ENV: ${{ matrix.environment }}
+          TAG: ${{ matrix.tag }}
+          VALUES: ${{ matrix.release_values_yaml }}
+          VERIFY: ${{ matrix.verify_image }}
+        run: |
+          set -euo pipefail
+          if [ -z "${GH_TOKEN}" ]; then
+            echo "::error::Set secret RELEASES_GITHUB_TOKEN (PAT/GitHub App) with actions:write on target app repos"
+            exit 1
+          fi
+          if [[ "$TAG" == *REPLACE* ]]; then
+            echo "::error::Placeholder tag — abort"
+            exit 1
+          fi
+          # The app's release workflow checks out the tag for image, chart and
+          # values; only its thin stub comes from APP_DISPATCH_REF.
+          ARGS=(
+            workflow run "$WORKFLOW"
+            --repo "ministryofjustice/${PROJECT}"
+            --ref "${APP_DISPATCH_REF}"
+            -f "environment=${ENV}"
+            -f "release-tag=${TAG}"
+            -f "verify-image=${VERIFY}"
+          )
+          # Only pass values if non-empty / non-comment-only
+          if [ -n "${VALUES}" ] && echo "${VALUES}" | grep -qvE '^[[:space:]]*(#.*)?$'; then
+            ARGS+=(-f "release-values-yaml=${VALUES}")
+          fi
+          gh "${ARGS[@]}"
+          echo "Dispatched ${WORKFLOW} on ${PROJECT}@${APP_DISPATCH_REF} (${ENV} / ${TAG})"
