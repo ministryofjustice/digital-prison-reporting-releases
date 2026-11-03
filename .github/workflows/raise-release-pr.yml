@@ -223,34 +223,80 @@ jobs:
 
           # Write PR body to a temp file to avoid shell quoting issues
           PR_BODY_FILE=$(mktemp)
-          printf '%s\n' \
-            "## Release request" \
-            "" \
-            "| Field | Value |" \
-            "|-------|-------|" \
-            "| **Product area** | \`${AREA}\` |" \
-            "| **Project** | \`${PROJECT}\` |" \
-            "| **Tag** | \`${TAG}\` |" \
-            "| **Environment** | \`${ENV}\` |" \
-            "" \
-            "### What happens on merge" \
-            "" \
-            "1. \`helm_app_release.yml\` detects the changed \`${RELEASE_PATH}\`" \
-            "2. Validates the tag \`${TAG}\` exists in \`ministryofjustice/${PROJECT}\`" \
-            "3. Dispatches \`release.yml\` on \`${PROJECT}\` with \`environment=${ENV}\` and \`release-tag=${TAG}\`" \
-            "4. App runs a **Helm-only promote** -- no Docker rebuild, image must already exist in GHCR" \
-            "" \
-            "### Checklist before merging" \
-            "- [ ] Tag \`${TAG}\` is the correct app release tag (not a \`Lib-v*\` tag)" \
-            "- [ ] The image for this tag exists in GHCR" \
-            "- [ ] GitHub Environment approvals on \`${PROJECT}\` are in place if required" \
-            "- [ ] No other release PR for \`${PROJECT}\` is currently open or in-flight" \
-            > "$PR_BODY_FILE"
 
-          gh pr create \
-            --base main \
-            --head "$BRANCH" \
-            --title "Release [${AREA}]: ${PROJECT} ${TAG} -> ${ENV}" \
-            --body-file "$PR_BODY_FILE"
+          if [ "$ENV" = "prod" ]; then
+            printf '%s\n' \
+              "## Release request" \
+              "" \
+              "> [!WARNING]" \
+              "> **PRODUCTION release** -- this PR requires **2 approvals** before merging:" \
+              "> 1. The raiser (you)" \
+              "> 2. A second team member who did not raise this PR" \
+              "" \
+              "| Field | Value |" \
+              "|-------|-------|" \
+              "| **Product area** | \`${AREA}\` |" \
+              "| **Project** | \`${PROJECT}\` |" \
+              "| **Tag** | \`${TAG}\` |" \
+              "| **Environment** | \`${ENV}\` |" \
+              "" \
+              "### What happens on merge" \
+              "" \
+              "1. \`helm_app_release.yml\` detects the changed \`${RELEASE_PATH}\`" \
+              "2. Validates the tag \`${TAG}\` exists in \`ministryofjustice/${PROJECT}\`" \
+              "3. Dispatches \`release.yml\` on \`${PROJECT}\` with \`environment=${ENV}\` and \`release-tag=${TAG}\`" \
+              "4. App runs a **Helm-only promote** -- no Docker rebuild, image must already exist in GHCR" \
+              "" \
+              "### Checklist before merging" \
+              "- [ ] Tag \`${TAG}\` is the correct app release tag (not a \`Lib-v*\` tag)" \
+              "- [ ] The image for this tag exists in GHCR and has been validated in preprod" \
+              "- [ ] Approved by the raiser" \
+              "- [ ] Approved by a second team member (not the raiser)" \
+              "- [ ] GitHub Environment approvals on \`${PROJECT}\` are in place" \
+              "- [ ] No other release PR for \`${PROJECT}\` is currently open or in-flight" \
+              > "$PR_BODY_FILE"
+          else
+            printf '%s\n' \
+              "## Release request" \
+              "" \
+              "| Field | Value |" \
+              "|-------|-------|" \
+              "| **Product area** | \`${AREA}\` |" \
+              "| **Project** | \`${PROJECT}\` |" \
+              "| **Tag** | \`${TAG}\` |" \
+              "| **Environment** | \`${ENV}\` |" \
+              "" \
+              "### What happens on merge" \
+              "" \
+              "1. \`helm_app_release.yml\` detects the changed \`${RELEASE_PATH}\`" \
+              "2. Validates the tag \`${TAG}\` exists in \`ministryofjustice/${PROJECT}\`" \
+              "3. Dispatches \`release.yml\` on \`${PROJECT}\` with \`environment=${ENV}\` and \`release-tag=${TAG}\`" \
+              "4. App runs a **Helm-only promote** -- no Docker rebuild, image must already exist in GHCR" \
+              "" \
+              "### Checklist before merging" \
+              "- [ ] Tag \`${TAG}\` is the correct app release tag (not a \`Lib-v*\` tag)" \
+              "- [ ] The image for this tag exists in GHCR" \
+              "- [ ] GitHub Environment approvals on \`${PROJECT}\` are in place if required" \
+              "- [ ] No other release PR for \`${PROJECT}\` is currently open or in-flight" \
+              > "$PR_BODY_FILE"
+          fi
+
+          # For prod: request review from the team so a second approver is notified.
+          # The team slug must exist in the ministryofjustice org.
+          # Update 'hmpps-dpr-team' below to match your actual GitHub team slug.
+          if [ "$ENV" = "prod" ]; then
+            gh pr create \
+              --base main \
+              --head "$BRANCH" \
+              --title "Release [${AREA}]: ${PROJECT} ${TAG} -> ${ENV}" \
+              --body-file "$PR_BODY_FILE" \
+              --reviewer "ministryofjustice/hmpps-dpr-team"
+          else
+            gh pr create \
+              --base main \
+              --head "$BRANCH" \
+              --title "Release [${AREA}]: ${PROJECT} ${TAG} -> ${ENV}" \
+              --body-file "$PR_BODY_FILE"
+          fi
 
           rm -f "$PR_BODY_FILE"
