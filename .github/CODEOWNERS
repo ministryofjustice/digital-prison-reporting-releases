@@ -1,0 +1,18 @@
+# CODEOWNERS for digital-prison-reporting-releases
+#
+# prod/ changes require review from the DPR team.
+# Combined with branch protection requiring 2 approvals on main, this ensures:
+#   - The raiser's approval counts as 1
+#   - A second team member must approve (enforced by "Required approvals: 2" in branch protection)
+#
+# To configure branch protection go to:
+#   Settings -> Branches -> main -> Require pull request reviews before merging
+#   Set "Required number of approvals" to 2 for prod releases.
+#
+# Update the team slug below to match your actual GitHub team under ministryofjustice.
+
+# All prod releases require DPR team review
+/prod/    @ministryofjustice/hmpps-dpr-team
+
+# All preprod releases require DPR team review (1 approval is sufficient)
+/preprod/ @ministryofjustice/hmpps-dpr-team

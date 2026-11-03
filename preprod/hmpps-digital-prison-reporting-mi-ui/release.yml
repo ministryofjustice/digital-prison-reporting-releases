@@ -1,0 +1,18 @@
+# Helm-app release pin for MI-UI (Cloud Platform).
+# Orchestrated by .github/workflows/helm_app_release.yml (GitHub Actions).
+# Does NOT use CircleCI hmpps-reporting-orb / generic_release.
+
+release:
+  type: helm_app
+  project: hmpps-digital-prison-reporting-mi-ui
+  # App release tag (vX.Y.Z) from the MI-UI Tags page — created by every main
+  # build. Pins the image (:vX.Y.Z) and the Helm chart + values at that tag.
+  # Not the Lib-v* tags (those track the shared library version).
+  tag: v1.0.0
+  # TEST: dummy preprod release redirected to dev — set back to preprod.
+  environment: dev
+  # Optional: chart/release overrides (defaults = project name)
+  # helm_chart_name: hmpps-digital-prison-reporting-mi-ui
+  # release_name: hmpps-digital-prison-reporting-mi-ui
+  workflow: release.yml
+  verify_image: true
