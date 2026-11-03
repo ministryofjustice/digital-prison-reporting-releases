@@ -10,7 +10,7 @@ release:
   # Not the Lib-v* tags (those track the shared library version).
   tag: v1.0.0
   # TEST: dummy preprod release redirected to dev — set back to preprod.
-  environment: dev
+  environment: preprod
   # Optional: chart/release overrides (defaults = project name)
   # helm_chart_name: hmpps-digital-prison-reporting-mi-ui
   # release_name: hmpps-digital-prison-reporting-mi-ui
