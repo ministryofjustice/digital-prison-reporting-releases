@@ -10,13 +10,14 @@ name: Raise release PR
 #   MP (Manage Platform) — Backend/Java apps (added here as they migrate to GitHub Actions)
 
 on:
-  # TEMPORARY: remove before merging to main.
-  # Needed so this workflow appears in the Actions sidebar on the test branch.
+  # TEMPORARY: makes this workflow visible in the Actions sidebar on the test branch.
+  # DELETE these 5 lines before merging to main:
   push:
     branches:
       - test/mi-ui-dev-release
     paths:
       - .github/workflows/raise-release-pr.yml
+  # END TEMPORARY
 
   workflow_dispatch:
     inputs:
@@ -48,6 +49,12 @@ on:
         options:
           - preprod
           - prod
+
+      dry-run:
+        description: 'Dry run — validate and show what would happen, but do NOT create the PR (safe for demos)'
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: write        # push branch
@@ -227,7 +234,6 @@ jobs:
           fi
 
           git commit -m "chore(release)[${AREA}]: ${PROJECT} ${TAG} -> ${ENV}"
-          git push origin "$BRANCH"
 
           # Write PR body to a temp file to avoid shell quoting issues
           PR_BODY_FILE=$(mktemp)
@@ -289,8 +295,25 @@ jobs:
               > "$PR_BODY_FILE"
           fi
 
+          # DRY RUN: stop here — do not push branch or create PR.
+          if [ "${{ inputs.dry-run }}" = "true" ]; then
+            echo "::notice::DRY RUN — no branch pushed, no PR created."
+            echo ""
+            echo "Would have created PR:"
+            echo "  Title:  Release [${AREA}]: ${PROJECT} ${TAG} -> ${ENV}"
+            echo "  Branch: ${BRANCH} -> main"
+            echo "  File:   ${RELEASE_PATH}"
+            echo ""
+            echo "PR body preview:"
+            cat "$PR_BODY_FILE"
+            rm -f "$PR_BODY_FILE"
+            exit 0
+          fi
+
+          # Push branch and open PR.
+          git push origin "$BRANCH"
+
           # For prod: request review from the team so a second approver is notified.
-          # The team slug must exist in the ministryofjustice org.
           # Update 'hmpps-dpr-team' below to match your actual GitHub team slug.
           if [ "$ENV" = "prod" ]; then
             gh pr create \
