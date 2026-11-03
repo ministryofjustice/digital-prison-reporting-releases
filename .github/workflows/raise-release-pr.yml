@@ -1,0 +1,236 @@
+name: Raise release PR
+
+# Raises a PR that pins a helm_app project to a specific tag and environment.
+# Merging the PR triggers helm_app_release.yml which dispatches the app's release.yml.
+# Product areas:
+#   CP (Cloud Platform) — Node/UI apps deployed via Helm to Cloud Platform
+#   MP (Manage Platform) — Backend/Java apps (added here as they migrate to GitHub Actions)
+
+on:
+  workflow_dispatch:
+    inputs:
+      product-area:
+        description: 'Product area — CP (Cloud Platform UI apps) or MP (Manage Platform backend apps)'
+        type: choice
+        required: true
+        options:
+          - CP
+          - MP
+
+      project:
+        description: >
+          Project (GitHub repo name under ministryofjustice).
+          CP projects: hmpps-digital-prison-reporting-mi-ui, hmpps-dpr-tools-ui.
+          MP projects: (none yet — add here as they migrate from CircleCI).
+        type: choice
+        required: true
+        options:
+          # CP — Cloud Platform UI apps
+          - hmpps-digital-prison-reporting-mi-ui
+          - hmpps-dpr-tools-ui
+          # MP — Manage Platform backend apps (add here as they migrate from CircleCI)
+
+      tag:
+        description: 'App release tag (vX.Y.Z) — find it on the project Tags page, not Lib-v* tags'
+        type: string
+        required: true
+
+      environment:
+        description: 'Target environment'
+        type: choice
+        required: true
+        options:
+          - preprod
+          - prod
+
+permissions:
+  contents: write        # push branch
+  pull-requests: write   # open PR
+
+jobs:
+  raise-pr:
+    name: 'Raise PR [${{ inputs.product-area }}]: ${{ inputs.project }} ${{ inputs.tag }} → ${{ inputs.environment }}'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # RELEASES_GITHUB_TOKEN is already required by helm_app_release.yml.
+          # Using it here ensures the pushed branch can trigger workflows on merge.
+          token: ${{ secrets.RELEASES_GITHUB_TOKEN }}
+
+      - name: Validate product-area / project combination
+        run: |
+          AREA="${{ inputs.product-area }}"
+          PROJECT="${{ inputs.project }}"
+
+          # Keep these lists in sync with the project options above.
+          CP_PROJECTS="hmpps-digital-prison-reporting-mi-ui hmpps-dpr-tools-ui"
+          MP_PROJECTS=""  # Populate as MP projects migrate from CircleCI
+
+          if [ "$AREA" = "CP" ]; then
+            VALID_PROJECTS="$CP_PROJECTS"
+          else
+            VALID_PROJECTS="$MP_PROJECTS"
+          fi
+
+          if [ -z "$VALID_PROJECTS" ]; then
+            echo "::error::No projects are registered for product area '${AREA}' yet."
+            echo "Add the project name to the MP_PROJECTS list in this workflow."
+            exit 1
+          fi
+
+          MATCHED=false
+          for P in $VALID_PROJECTS; do
+            if [ "$P" = "$PROJECT" ]; then
+              MATCHED=true
+              break
+            fi
+          done
+
+          if [ "$MATCHED" = "false" ]; then
+            echo "::error::Project '${PROJECT}' does not belong to product area '${AREA}'."
+            echo "CP projects: ${CP_PROJECTS}"
+            echo "MP projects: ${MP_PROJECTS:-none registered yet}"
+            echo "Either select the correct product area or add the project to the right list."
+            exit 1
+          fi
+
+          echo "Product area: ${AREA}"
+          echo "Project:      ${PROJECT} (valid for ${AREA})"
+
+      - name: Install yq
+        run: |
+          sudo wget -qO /usr/local/bin/yq \
+            https://github.com/mikefarah/yq/releases/download/v4.44.3/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Validate tag format
+        run: |
+          TAG="${{ inputs.tag }}"
+          if ! echo "$TAG" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::Tag '${TAG}' must be in vX.Y.Z format (e.g. v1.2.3)"
+            exit 1
+          fi
+
+      - name: Verify tag exists in app repo
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_GITHUB_TOKEN }}
+        run: |
+          PROJECT="${{ inputs.project }}"
+          TAG="${{ inputs.tag }}"
+          if ! gh api "repos/ministryofjustice/${PROJECT}/git/ref/tags/${TAG}" >/dev/null 2>&1; then
+            echo "::error::Tag ${TAG} not found in ministryofjustice/${PROJECT}"
+            echo "Check the project Tags page — app release tags are vX.Y.Z."
+            echo "Do not use Lib-v* tags (those track shared library versions, not app releases)."
+            exit 1
+          fi
+          SHA=$(gh api "repos/ministryofjustice/${PROJECT}/commits/${TAG}" --jq .sha)
+          echo "Verified: ${TAG} → ${SHA}"
+
+      - name: Resolve release file paths
+        id: paths
+        run: |
+          PROJECT="${{ inputs.project }}"
+          ENV="${{ inputs.environment }}"
+          echo "release_path=${ENV}/${PROJECT}/release.yml" >> "$GITHUB_OUTPUT"
+          echo "config_path=${ENV}/${PROJECT}/config/values.yaml" >> "$GITHUB_OUTPUT"
+          echo "dir=${ENV}/${PROJECT}"                            >> "$GITHUB_OUTPUT"
+
+      - name: Update or create release.yml
+        run: |
+          PROJECT="${{ inputs.project }}"
+          TAG="${{ inputs.tag }}"
+          ENV="${{ inputs.environment }}"
+          RELEASE_PATH="${{ steps.paths.outputs.release_path }}"
+          CONFIG_PATH="${{ steps.paths.outputs.config_path }}"
+          DIR="${{ steps.paths.outputs.dir }}"
+
+          mkdir -p "${DIR}/config"
+
+          if [ -f "$RELEASE_PATH" ]; then
+            # File already exists — update only tag and environment, preserve all other fields
+            yq e -i ".release.tag = \"${TAG}\""         "$RELEASE_PATH"
+            yq e -i ".release.environment = \"${ENV}\"" "$RELEASE_PATH"
+            echo "Updated ${RELEASE_PATH}: tag=${TAG}, environment=${ENV}"
+          else
+            # New project entry — create minimal helm_app release stub
+            cat > "$RELEASE_PATH" <<EOF
+# Helm-app release pin for ${PROJECT}.
+# Managed by .github/workflows/helm_app_release.yml — do not dispatch manually.
+release:
+  type: helm_app
+  project: ${PROJECT}
+  tag: ${TAG}
+  environment: ${ENV}
+  workflow: release.yml
+  verify_image: true
+EOF
+            echo "Created ${RELEASE_PATH}"
+
+            # Create a matching empty config/values.yaml so the dir structure is consistent
+            if [ ! -f "$CONFIG_PATH" ]; then
+              cat > "$CONFIG_PATH" <<EOF
+# Optional Helm value overrides applied on top of the app chart's
+# helm_deploy/values-<environment>.yaml during promote.
+# Leave empty (comments only) unless you need a one-off release override.
+EOF
+              echo "Created ${CONFIG_PATH}"
+            fi
+          fi
+
+      - name: Create branch and open PR
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_GITHUB_TOKEN }}
+        run: |
+          AREA="${{ inputs.product-area }}"
+          PROJECT="${{ inputs.project }}"
+          TAG="${{ inputs.tag }}"
+          ENV="${{ inputs.environment }}"
+          RELEASE_PATH="${{ steps.paths.outputs.release_path }}"
+          CONFIG_PATH="${{ steps.paths.outputs.config_path }}"
+
+          BRANCH="release/${AREA}/${ENV}/${PROJECT}/${TAG}"
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git checkout -b "$BRANCH"
+          git add "$RELEASE_PATH"
+          [ -f "$CONFIG_PATH" ] && git add "$CONFIG_PATH" || true
+
+          if git diff --cached --quiet; then
+            echo "::notice::No changes — ${RELEASE_PATH} already pins ${TAG} to ${ENV}. No PR raised."
+            exit 0
+          fi
+
+          git commit -m "chore(release)[${AREA}]: ${PROJECT} ${TAG} → ${ENV}"
+          git push origin "$BRANCH"
+
+          gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "Release [${AREA}]: ${PROJECT} ${TAG} → ${ENV}" \
+            --body "## Release request
+
+| Field | Value |
+|-------|-------|
+| **Product area** | \`${AREA}\` |
+| **Project** | \`${PROJECT}\` |
+| **Tag** | \`${TAG}\` |
+| **Environment** | \`${ENV}\` |
+
+### What happens on merge
+
+1. \`helm_app_release.yml\` detects the changed \`${RELEASE_PATH}\`
+2. Validates the tag \`${TAG}\` exists in \`ministryofjustice/${PROJECT}\`
+3. Dispatches \`release.yml\` on \`${PROJECT}\` with \`environment=${ENV}\` and \`release-tag=${TAG}\`
+4. App runs a **Helm-only promote** — no Docker rebuild, image must already exist in GHCR
+
+### Checklist before merging
+- [ ] Tag \`${TAG}\` is the correct app release tag (not a \`Lib-v*\` tag)
+- [ ] The image for this tag exists in GHCR
+- [ ] GitHub Environment approvals on \`${PROJECT}\` are in place if required
+- [ ] No other release PR for \`${PROJECT}\` is currently open or in-flight"
