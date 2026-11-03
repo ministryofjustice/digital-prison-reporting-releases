@@ -4,24 +4,12 @@ name: Raise release PR
 # Merging the PR triggers helm_app_release.yml which dispatches the app's release.yml.
 #
 # GitHub-only (helm_app type). CircleCI data-platform projects are not supported.
-#
-# Product areas:
-#   CP (Cloud Platform) — Node/UI apps deployed via Helm to Cloud Platform
-#   MP (Manage Platform) — Backend/Java apps (added here as they migrate to GitHub Actions)
 
 on:
   workflow_dispatch:
     inputs:
-      product-area:
-        description: 'Product area — CP (Cloud Platform UI apps) or MP (Manage Platform backend apps)'
-        type: choice
-        required: true
-        options:
-          - CP
-          - MP
-
       project:
-        description: 'Project repo name. CP: hmpps-digital-prison-reporting-mi-ui, hmpps-dpr-tools-ui. MP: add as projects migrate.'
+        description: 'Project (GitHub repo name under ministryofjustice)'
         type: choice
         required: true
         options:
@@ -47,7 +35,7 @@ permissions:
 
 jobs:
   raise-pr:
-    name: 'Raise PR [${{ inputs.product-area }}]: ${{ inputs.project }} ${{ inputs.tag }} -> ${{ inputs.environment }}'
+    name: 'Raise PR: ${{ inputs.project }} ${{ inputs.tag }} -> ${{ inputs.environment }}'
     runs-on: ubuntu-latest
 
     steps:
@@ -59,47 +47,6 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.RELEASES_GITHUB_TOKEN }}
-
-      - name: Validate product-area / project combination
-        run: |
-          set -euo pipefail
-          AREA="${{ inputs.product-area }}"
-          PROJECT="${{ inputs.project }}"
-
-          # Keep these lists in sync with the project options above.
-          CP_PROJECTS="hmpps-digital-prison-reporting-mi-ui hmpps-dpr-tools-ui"
-          MP_PROJECTS=""  # Populate as MP projects migrate from CircleCI
-
-          if [ "$AREA" = "CP" ]; then
-            VALID_PROJECTS="$CP_PROJECTS"
-          else
-            VALID_PROJECTS="$MP_PROJECTS"
-          fi
-
-          if [ -z "$VALID_PROJECTS" ]; then
-            echo "::error::No projects are registered for product area '${AREA}' yet."
-            echo "Add the project name to the MP_PROJECTS list in this workflow."
-            exit 1
-          fi
-
-          MATCHED=false
-          for P in $VALID_PROJECTS; do
-            if [ "$P" = "$PROJECT" ]; then
-              MATCHED=true
-              break
-            fi
-          done
-
-          if [ "$MATCHED" = "false" ]; then
-            echo "::error::Project '${PROJECT}' does not belong to product area '${AREA}'."
-            echo "CP projects: ${CP_PROJECTS}"
-            echo "MP projects: ${MP_PROJECTS:-none registered yet}"
-            echo "Either select the correct product area or add the project to the right list."
-            exit 1
-          fi
-
-          echo "Product area: ${AREA}"
-          echo "Project:      ${PROJECT} (valid for ${AREA})"
 
       - name: Install yq
         run: |
@@ -192,15 +139,13 @@ jobs:
           GH_TOKEN: ${{ secrets.RELEASES_GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          AREA="${{ inputs.product-area }}"
           PROJECT="${{ inputs.project }}"
           TAG="${{ inputs.tag }}"
           ENV="${{ inputs.environment }}"
           RELEASE_PATH="${{ steps.paths.outputs.release_path }}"
           CONFIG_PATH="${{ steps.paths.outputs.config_path }}"
 
-          # Branch name: ASCII-only, no Unicode arrows
-          BRANCH="release/${AREA}/${ENV}/${PROJECT}/${TAG}"
+          BRANCH="release/${ENV}/${PROJECT}/${TAG}"
 
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -218,7 +163,7 @@ jobs:
             exit 0
           fi
 
-          git commit -m "chore(release)[${AREA}]: ${PROJECT} ${TAG} -> ${ENV}"
+          git commit -m "chore(release): ${PROJECT} ${TAG} -> ${ENV}"
           git push origin "$BRANCH"
 
           # Write PR body to a temp file to avoid shell quoting issues
@@ -235,7 +180,6 @@ jobs:
               "" \
               "| Field | Value |" \
               "|-------|-------|" \
-              "| **Product area** | \`${AREA}\` |" \
               "| **Project** | \`${PROJECT}\` |" \
               "| **Tag** | \`${TAG}\` |" \
               "| **Environment** | \`${ENV}\` |" \
@@ -261,7 +205,6 @@ jobs:
               "" \
               "| Field | Value |" \
               "|-------|-------|" \
-              "| **Product area** | \`${AREA}\` |" \
               "| **Project** | \`${PROJECT}\` |" \
               "| **Tag** | \`${TAG}\` |" \
               "| **Environment** | \`${ENV}\` |" \
@@ -287,14 +230,14 @@ jobs:
             gh pr create \
               --base main \
               --head "$BRANCH" \
-              --title "Release [${AREA}]: ${PROJECT} ${TAG} -> ${ENV}" \
+              --title "Release: ${PROJECT} ${TAG} -> ${ENV}" \
               --body-file "$PR_BODY_FILE" \
               --reviewer "ministryofjustice/hmpps-dpr-team"
           else
             gh pr create \
               --base main \
               --head "$BRANCH" \
-              --title "Release [${AREA}]: ${PROJECT} ${TAG} -> ${ENV}" \
+              --title "Release: ${PROJECT} ${TAG} -> ${ENV}" \
               --body-file "$PR_BODY_FILE"
           fi
 
