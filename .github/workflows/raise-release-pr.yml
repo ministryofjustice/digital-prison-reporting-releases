@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       project:
-        description: 'Project (GitHub repo name under ministryofjustice)'
+        description: 'Project Repo Name'
         type: choice
         required: true
         options:
