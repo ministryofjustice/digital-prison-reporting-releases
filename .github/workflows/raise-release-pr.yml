@@ -106,7 +106,7 @@ jobs:
             # File already exists — update tag and environment with sed to preserve comments.
             # yq -i rewrites the whole file and strips comments; sed targets only these lines.
             sed -i "s|^\( *tag:\).*|\1 ${TAG}|"         "$RELEASE_PATH"
-            sed -i "s|^\( *environment:\).*|\1 ${ENV}|" "$RELEASE_PATH"
+          # sed -i "s|^\( *environment:\).*|\1 ${ENV}|" "$RELEASE_PATH"
             echo "Updated ${RELEASE_PATH}: tag=${TAG}, environment=${ENV}"
           else
             # New project entry — create a minimal helm_app release stub.
