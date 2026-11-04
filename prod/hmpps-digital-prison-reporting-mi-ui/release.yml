@@ -1,0 +1,9 @@
+# Helm-app release pin for hmpps-digital-prison-reporting-mi-ui.
+# Managed by .github/workflows/helm_app_release.yml -- do not dispatch manually.
+release:
+  type: helm_app
+  project: hmpps-digital-prison-reporting-mi-ui
+  tag: v1.0.0
+  environment: prod
+  workflow: release.yml
+  verify_image: true
