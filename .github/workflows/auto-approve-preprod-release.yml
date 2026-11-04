@@ -1,0 +1,106 @@
+name: Auto-approve preprod release
+
+# Approves release/preprod/* PRs (raised by raise-release-pr.yml) as github-actions[bot]
+# so a preprod release does not need a second reviewer. Prod releases still need a human.
+#
+# pull_request_target runs this file from main, so a PR cannot edit these checks to
+# approve itself. PR code is never checked out or executed; files are read via the API.
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize]
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  auto-approve:
+    name: Auto-approve preprod release
+    if: |
+      startsWith(github.head_ref, 'release/preprod/') &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      PR: ${{ github.event.pull_request.number }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - name: Install yq
+        run: |
+          set -euo pipefail
+          sudo wget -qO /usr/local/bin/yq \
+            https://github.com/mikefarah/yq/releases/download/v4.44.3/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Check PR only changes preprod release files
+        id: check
+        run: |
+          set -euo pipefail
+          FAILED=0
+
+          # previous_filename catches renames that would remove a file outside preprod/
+          FILES=$(gh api --paginate "repos/${REPO}/pulls/${PR}/files" \
+            --jq '.[] | .filename, (.previous_filename // empty)' | sort -u)
+
+          if [ -z "$FILES" ]; then
+            echo "::error::PR has no changed files"
+            FAILED=1
+          fi
+
+          for f in $FILES; do
+            if [[ ! "$f" =~ ^preprod/[^/]+/(release\.yml|config/.+)$ ]]; then
+              echo "::error::${f} is outside preprod/<project>/release.yml or preprod/<project>/config/"
+              FAILED=1
+            fi
+          done
+
+          # helm_app_release.yml deploys to release.environment, not the folder name,
+          # so a preprod/ file pointing at prod must not be auto-approved.
+          for dir in $(printf '%s\n' $FILES | grep -E '^preprod/[^/]+/' | cut -d/ -f1-2 | sort -u); do
+            REL="${dir}/release.yml"
+            if ! CONTENT=$(gh api "repos/${REPO}/contents/${REL}?ref=${HEAD_SHA}" \
+                -H "Accept: application/vnd.github.raw" 2>/dev/null); then
+              echo "::error::Could not read ${REL} at ${HEAD_SHA}"
+              FAILED=1
+              continue
+            fi
+            ENV=$(echo "$CONTENT" | yq e '.release.environment // ""' -)
+            case "$ENV" in
+              preprod|dev) echo "${REL}: environment=${ENV}" ;;
+              *)
+                echo "::error::${REL} targets environment '${ENV}' — only preprod/dev can be auto-approved"
+                FAILED=1
+                ;;
+            esac
+          done
+
+          if [ "$FAILED" -eq 0 ]; then
+            echo "approve=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "approve=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Approve
+        if: steps.check.outputs.approve == 'true'
+        run: |
+          set -euo pipefail
+          gh pr review "$PR" --repo "$REPO" --approve \
+            --body "Auto-approved: preprod release PR that only changes preprod/<project>/release.yml or config/."
+
+      - name: Dismiss earlier auto-approval
+        if: steps.check.outputs.approve != 'true'
+        run: |
+          set -euo pipefail
+          IDS=$(gh api --paginate "repos/${REPO}/pulls/${PR}/reviews" \
+            --jq '.[] | select(.user.login == "github-actions[bot]" and .state == "APPROVED") | .id')
+          for id in $IDS; do
+            gh api -X PUT "repos/${REPO}/pulls/${PR}/reviews/${id}/dismissals" \
+              -f message="PR no longer qualifies for preprod auto-approval." \
+              -f event=DISMISS > /dev/null
+            echo "Dismissed review ${id}"
+          done
+          echo "::error::Not auto-approved — this PR needs a human review."
+          exit 1
