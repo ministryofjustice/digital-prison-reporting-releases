@@ -1,0 +1,3 @@
+# Optional Helm value overrides applied on top of the app chart's
+# helm_deploy/values-prod.yaml during promote.
+# Leave empty (comments only) unless you need a one-off release override.
