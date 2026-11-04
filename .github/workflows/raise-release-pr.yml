@@ -1,4 +1,4 @@
-name: Raise release PR
+name: Raise release request
 
 # Raises a PR that pins a helm_app project to a specific tag and environment.
 # Merging the PR triggers helm_app_release.yml which dispatches the app's release.yml.
@@ -106,8 +106,19 @@ jobs:
             # File already exists — update tag and environment with sed to preserve comments.
             # yq -i rewrites the whole file and strips comments; sed targets only these lines.
             sed -i "s|^\( *tag:\).*|\1 ${TAG}|"         "$RELEASE_PATH"
-          # sed -i "s|^\( *environment:\).*|\1 ${ENV}|" "$RELEASE_PATH"
-            echo "Updated ${RELEASE_PATH}: tag=${TAG}, environment=${ENV}"
+           #sed -i "s|^\( *environment:\).*|\1 ${ENV}|" "$RELEASE_PATH"
+
+            # Bump counter (0-9, wraps) so a re-deploy of the same tag+env still produces a diff.
+            # helm_app_release.yml ignores this field — it is purely a change trigger.
+            CURRENT_BUMP=$(grep -E '^ *bump:' "$RELEASE_PATH" | grep -oE '[0-9]+' || true)
+            if [ -z "$CURRENT_BUMP" ]; then
+              NEXT_BUMP=0
+              printf '  bump: %s\n' "$NEXT_BUMP" >> "$RELEASE_PATH"
+            else
+              NEXT_BUMP=$(( (CURRENT_BUMP + 1) % 10 ))
+              sed -i "s|^\( *bump:\).*|\1 ${NEXT_BUMP}|" "$RELEASE_PATH"
+            fi
+            echo "Updated ${RELEASE_PATH}: tag=${TAG}, environment=${ENV}, bump=${NEXT_BUMP}"
           else
             # New project entry — create a minimal helm_app release stub.
             printf '%s\n' \
@@ -120,6 +131,7 @@ jobs:
               "  environment: ${ENV}" \
               "  workflow: release.yml" \
               "  verify_image: true" \
+              "  bump: 0" \
               > "$RELEASE_PATH"
             echo "Created ${RELEASE_PATH}"
 
@@ -232,7 +244,7 @@ jobs:
               --head "$BRANCH" \
               --title "Release: ${PROJECT} ${TAG} -> ${ENV}" \
               --body-file "$PR_BODY_FILE" \
-              --reviewer "ministryofjustice/hmpps-dpr-team"
+              --reviewer "ministryofjustice/hmpps-digital-prison-reporting"
           else
             gh pr create \
               --base main \
