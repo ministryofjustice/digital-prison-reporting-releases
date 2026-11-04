@@ -162,6 +162,29 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
+          # Check for a stale branch or open PR from a previous run.
+          EXISTING_PR_URL=$(gh pr list --head "$BRANCH" --state open --json url --jq '.[0].url' 2>/dev/null || true)
+          BRANCH_EXISTS=$(git ls-remote --heads origin "$BRANCH" | wc -l | tr -d ' ')
+
+          if [ -n "$EXISTING_PR_URL" ]; then
+            echo "::error::A release PR for this branch already exists and is open."
+            echo "::error::Branch:  ${BRANCH}"
+            echo "::error::PR:      ${EXISTING_PR_URL}"
+            echo "::error::Please merge or close the existing PR before raising a new one."
+            echo "::error::If you want to re-deploy, merge the existing PR or close it and re-run this workflow."
+            exit 1
+          fi
+
+          if [ "$BRANCH_EXISTS" != "0" ]; then
+            BRANCH_URL="https://github.com/ministryofjustice/digital-prison-reporting-releases/tree/${BRANCH}"
+            echo "::error::A release branch already exists on the remote but has no open PR."
+            echo "::error::Branch: ${BRANCH}"
+            echo "::error::URL:    ${BRANCH_URL}"
+            echo "::error::This usually means a previous PR was merged or closed without deleting the branch."
+            echo "::error::Please delete the remote branch and re-run this workflow."
+            exit 1
+          fi
+
           git checkout -b "$BRANCH"
           git add "$RELEASE_PATH"
 
@@ -237,7 +260,6 @@ jobs:
           fi
 
           # For prod: request review from the team so a second approver is notified.
-          # Update 'hmpps-dpr-team' below to match your actual GitHub team slug.
           if [ "$ENV" = "prod" ]; then
             gh pr create \
               --base main \
