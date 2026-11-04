@@ -16,4 +16,4 @@ release:
   # release_name: hmpps-digital-prison-reporting-mi-ui
   workflow: release.yml
   verify_image: true
-  bump: 0
+  bump: 1
