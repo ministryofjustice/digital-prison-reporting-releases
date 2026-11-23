@@ -1,0 +1,10 @@
+# Helm-app release pin for hmpps-dpr-tools-ui.
+# Managed by .github/workflows/helm_app_release.yml -- do not dispatch manually.
+release:
+  type: helm_app
+  project: hmpps-dpr-tools-ui
+  tag: v1.1.3
+  environment: preprod
+  workflow: release.yml
+  verify_image: true
+  bump: 0
