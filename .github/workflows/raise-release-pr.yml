@@ -209,9 +209,8 @@ jobs:
               "## Release request" \
               "" \
               "> [!WARNING]" \
-              "> **PRODUCTION release** -- this PR requires **2 approvals** before merging:" \
-              "> 1. The raiser (you)" \
-              "> 2. A second team member who did not raise this PR" \
+              "> **PRODUCTION release** -- this PR needs **1 approval** from a member of" \
+              "> \`hmpps-digital-prison-reporting\` who did not raise it. It is never auto-approved." \
               "" \
               "| Field | Value |" \
               "|-------|-------|" \
@@ -229,8 +228,7 @@ jobs:
               "### Checklist before merging" \
               "- [ ] Tag \`${TAG}\` is the correct app release tag (not a \`Lib-v*\` tag)" \
               "- [ ] The image for this tag exists in GHCR and has been validated in preprod" \
-              "- [ ] Approved by the raiser" \
-              "- [ ] Approved by a second team member (not the raiser)" \
+              "- [ ] Approved by a team member who did not raise this PR" \
               "- [ ] GitHub Environment approvals on \`${PROJECT}\` are in place" \
               "- [ ] No other release PR for \`${PROJECT}\` is currently open or in-flight" \
               > "$PR_BODY_FILE"
@@ -259,7 +257,7 @@ jobs:
               > "$PR_BODY_FILE"
           fi
 
-          # For prod: request review from the team so a second approver is notified.
+          # For prod: request review from the team so an approver is notified.
           if [ "$ENV" = "prod" ]; then
             gh pr create \
               --base main \
